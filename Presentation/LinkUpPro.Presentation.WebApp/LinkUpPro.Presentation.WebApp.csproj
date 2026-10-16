@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\LinkUpPro.Core.Domain\LinkUpPro.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\Core\LinkUpPro.Core.Application\LinkUpPro.Core.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\LinkUpPro.Infrastructure.Persistence\LinkUpPro.Infrastructure.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\LinkUpPro.Infrastructure.Shared\LinkUpPro.Infrastructure.Shared.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

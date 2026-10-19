@@ -1,6 +1,7 @@
 using LinkUpPro.Core.Domain.Entities;
 using LinkUpPro.Infrastructure.Persistence;
 using LinkUpPro.Infrastructure.Persistence.Context;
+using LinkUpPro.Infrastructure.Shared;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,9 @@ builder.Services.AddControllersWithViews();
 
 // Registrar infraestructura de Persistencia (DbContext y Repositorios)
 builder.Services.AddPersistenceInfrastructure(builder.Configuration);
+
+// Registrar infraestructura Compartida (Correo y Archivos)
+builder.Services.AddSharedInfrastructure(builder.Configuration);
 
 // Configurar ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>

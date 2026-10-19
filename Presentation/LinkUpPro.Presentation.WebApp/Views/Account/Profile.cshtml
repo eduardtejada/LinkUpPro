@@ -1,0 +1,121 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "Mi Perfil";
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h4 class="fw-bold mb-0 text-primary"><i class="bi bi-person-circle me-2"></i>Mi Perfil</h4>
+                <a asp-action="ChangePassword" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-key-fill me-1"></i> Cambiar Contraseña
+                </a>
+            </div>
+
+            <div class="card-body p-4">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @if (ViewBag.SuccessMessage != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>@ViewBag.SuccessMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form asp-action="Profile" method="post" enctype="multipart/form-data" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CurrentProfilePictureUrl" />
+
+                    <!-- Avatar y Previsualización -->
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            <img src="@(string.IsNullOrWhiteSpace(Model.CurrentProfilePictureUrl) ? "/images/default-avatar.png" : Model.CurrentProfilePictureUrl)" 
+                                 alt="@Model.FirstName" 
+                                 class="rounded-circle img-thumbnail shadow-sm" 
+                                 style="width: 130px; height: 130px; object-fit: cover;"
+                                 onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.FirstName + " " + Model.LastName)&background=0D6EFD&color=fff&size=130';" />
+                        </div>
+                        <div class="mt-2 text-muted small">Foto actual de perfil</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Campos de solo lectura (según rúbrica) -->
+                        <div class="col-sm-6">
+                            <label asp-for="UserName" class="form-label fw-semibold text-muted"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-at"></i></span>
+                                <input asp-for="UserName" class="form-control bg-light" readonly />
+                            </div>
+                            <div class="form-text">El nombre de usuario no se puede cambiar.</div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label asp-for="Email" class="form-label fw-semibold text-muted"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="Email" class="form-control bg-light" readonly />
+                            </div>
+                            <div class="form-text">El correo está vinculado permanentemente.</div>
+                        </div>
+
+                        <!-- Campos editables -->
+                        <div class="col-sm-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label asp-for="LastName" class="form-label fw-semibold"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="809-xxx-xxxx / 829 / 849" />
+                            </div>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Cambiar Foto de Perfil <span class="text-muted fw-normal">(Opcional, máx. 5 MB)</span></label>
+                            <input type="file" name="profilePicture" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                            <div class="form-text">Formatos permitidos: .jpg, .jpeg, .png, .webp (máx. 5 MB).</div>
+                        </div>
+
+                        <div class="col-12 mt-4 text-end">
+                            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                                <i class="bi bi-save me-1"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

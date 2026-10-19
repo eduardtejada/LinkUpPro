@@ -2,8 +2,11 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using LinkUpPro.Presentation.WebApp.Models;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace LinkUpPro.Presentation.WebApp.Controllers;
 
+[Authorize]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;

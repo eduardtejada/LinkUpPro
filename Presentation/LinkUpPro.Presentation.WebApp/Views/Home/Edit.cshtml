@@ -1,0 +1,146 @@
+@model SavePostViewModel
+@{
+    ViewData["Title"] = "Editar Publicación";
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-pencil-square me-2"></i>Editar Publicación</h5>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Volver al Feed
+                </a>
+            </div>
+
+            <div class="card-body p-4">
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="ExistingMediaUrl" />
+
+                    <!-- Contenido -->
+                    <div class="mb-3">
+                        <label asp-for="Content" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Content" class="form-control" rows="4" required></textarea>
+                        <span asp-validation-for="Content" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Visualización de Multimedia Actual si existe -->
+                    @if (!string.IsNullOrWhiteSpace(Model.ExistingMediaUrl))
+                    {
+                        <div class="card bg-light mb-3 p-3">
+                            <label class="form-label small fw-semibold text-muted">Contenido Multimedia Actual:</label>
+                            
+                            @if (Model.MediaType == PostMediaType.Image)
+                            {
+                                <div class="text-center mb-2">
+                                    <img src="@Model.ExistingMediaUrl" alt="Imagen actual" class="img-thumbnail" style="max-height: 200px;" />
+                                </div>
+                            }
+                            else if (Model.MediaType == PostMediaType.YouTube)
+                            {
+                                <div class="mb-2">
+                                    <span class="badge bg-danger"><i class="bi bi-youtube me-1"></i> YouTube</span>
+                                    <a href="@Model.ExistingMediaUrl" target="_blank" class="small text-truncate d-inline-block" style="max-width: 300px;">
+                                        @Model.ExistingMediaUrl
+                                    </a>
+                                </div>
+                            }
+
+                            <div class="form-check">
+                                <input asp-for="RemoveExistingMedia" class="form-check-input" />
+                                <label asp-for="RemoveExistingMedia" class="form-check-label text-danger small fw-semibold">
+                                    Eliminar este contenido multimedia
+                                </label>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Selector de nuevo multimedia -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="MediaType" class="form-label small fw-semibold"></label>
+                            <select id="editMediaTypeSelect" asp-for="MediaType" class="form-select form-select-sm">
+                                <option value="0">Sin multimedia</option>
+                                <option value="1">Imagen</option>
+                                <option value="2">Video de YouTube</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Privacy" class="form-label small fw-semibold"></label>
+                            <select asp-for="Privacy" class="form-select form-select-sm">
+                                <option value="1">Solo amigos</option>
+                                <option value="2">Solo yo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Reemplazo de Imagen -->
+                    <div id="editImageContainer" class="mb-3 @(Model.MediaType == PostMediaType.Image ? "" : "d-none")">
+                        <label class="form-label small fw-semibold">Seleccionar Nueva Imagen (opcional, máx. 5 MB)</label>
+                        <input type="file" name="imageFile" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp" />
+                    </div>
+
+                    <!-- Reemplazo de YouTube -->
+                    <div id="editYoutubeContainer" class="mb-3 @(Model.MediaType == PostMediaType.YouTube ? "" : "d-none")">
+                        <label asp-for="YouTubeUrl" class="form-label small fw-semibold"></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-danger text-white"><i class="bi bi-youtube"></i></span>
+                            <input type="url" asp-for="YouTubeUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=..." />
+                        </div>
+                    </div>
+
+                    <!-- Estado de comentarios -->
+                    <div class="form-check form-switch mb-4">
+                        <input asp-for="AreCommentsDisabled" class="form-check-input" />
+                        <label asp-for="AreCommentsDisabled" class="form-check-label small fw-semibold"></label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-save me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const editSelect = document.getElementById('editMediaTypeSelect');
+        const editImg = document.getElementById('editImageContainer');
+        const editYt = document.getElementById('editYoutubeContainer');
+
+        if (editSelect) {
+            editSelect.addEventListener('change', function () {
+                const val = editSelect.value;
+                if (val === "1") {
+                    editImg.classList.remove('d-none');
+                    editYt.classList.add('d-none');
+                } else if (val === "2") {
+                    editYt.classList.remove('d-none');
+                    editImg.classList.add('d-none');
+                } else {
+                    editImg.classList.add('d-none');
+                    editYt.classList.add('d-none');
+                }
+            });
+        }
+    </script>
+}

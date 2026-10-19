@@ -1,8 +1,440 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model IReadOnlyList<PostViewModel>
+@{
+    ViewData["Title"] = "Feed Principal";
+    var filter = ViewBag.Filter as PostFilterViewModel ?? new PostFilterViewModel();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Mensajes de Alerta -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Tarjeta de Creación de Publicación -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-pencil-square me-2"></i>¿Qué estás pensando hoy?
+                </h5>
+
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <textarea name="Content" class="form-control" rows="3" placeholder="Comparte una actualización con tus amigos..." required></textarea>
+                    </div>
+
+                    <!-- Selector de Multimedia Condicional (Exactamente 1 o ninguno) -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Tipo de Multimedia</label>
+                            <select id="mediaTypeSelect" name="MediaType" class="form-select form-select-sm">
+                                <option value="0">Sin multimedia</option>
+                                <option value="1">Subir Imagen</option>
+                                <option value="2">Video de YouTube</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Privacidad</label>
+                            <select name="Privacy" class="form-select form-select-sm">
+                                <option value="1">Solo amigos</option>
+                                <option value="2">Solo yo</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" name="AreCommentsDisabled" value="true" id="disableCommentsCheck">
+                                <label class="form-check-label small" for="disableCommentsCheck">Desactivar comentarios</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campo de Subida de Imagen -->
+                    <div id="imageUploadContainer" class="mb-3 d-none">
+                        <label class="form-label small fw-semibold">Seleccionar Imagen (máx. 5 MB)</label>
+                        <input type="file" name="imageFile" id="imageFileInput" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp" />
+                        <div class="form-text small">Formatos permitidos: .jpg, .jpeg, .png, .webp.</div>
+                    </div>
+
+                    <!-- Campo de Enlace YouTube -->
+                    <div id="youtubeUrlContainer" class="mb-3 d-none">
+                        <label class="form-label small fw-semibold">Enlace de YouTube</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-danger text-white"><i class="bi bi-youtube"></i></span>
+                            <input type="url" name="YouTubeUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=..." />
+                        </div>
+                    </div>
+
+                    <div class="text-end border-top pt-3">
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-send-fill me-1"></i> Publicar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Buscador y Filtros Combinables -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-secondary">
+                    <i class="bi bi-funnel-fill me-1"></i> Filtrar mis publicaciones
+                </span>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="@(filter.HasActiveFilters ? "true" : "false")">
+                    <i class="bi bi-sliders me-1"></i> @(filter.HasActiveFilters ? "Filtros Activos" : "Opciones")
+                </button>
+            </div>
+
+            <div class="collapse @(filter.HasActiveFilters ? "show" : "")" id="filtersCollapse">
+                <div class="card-body p-3 bg-light border-bottom">
+                    <form asp-action="Index" method="get">
+                        <div class="row g-2">
+                            <div class="col-md-12">
+                                <input type="text" name="SearchTerm" class="form-control form-control-sm" placeholder="Buscar por contenido de texto..." value="@filter.SearchTerm" />
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Tipo Multimedia</label>
+                                <select name="MediaType" class="form-select form-select-sm">
+                                    <option value="">Todas</option>
+                                    <option value="1" selected="@(filter.MediaType == PostMediaType.Image)">Solo Imágenes</option>
+                                    <option value="2" selected="@(filter.MediaType == PostMediaType.YouTube)">Solo YouTube</option>
+                                    <option value="0" selected="@(filter.MediaType == PostMediaType.None)">Sin Multimedia</option>
+                                </select>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Estado de Edición</label>
+                                <select name="EditStatus" class="form-select form-select-sm">
+                                    <option value="0" selected="@(filter.EditStatus == EditFilterStatus.All)">Todas</option>
+                                    <option value="1" selected="@(filter.EditStatus == EditFilterStatus.Edited)">Editadas</option>
+                                    <option value="2" selected="@(filter.EditStatus == EditFilterStatus.NotEdited)">No Editadas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Desde Fecha</label>
+                                <input type="date" name="StartDate" class="form-control form-control-sm" value="@(filter.StartDate?.ToString("yyyy-MM-dd"))" />
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Hasta Fecha</label>
+                                <input type="date" name="EndDate" class="form-control form-control-sm" value="@(filter.EndDate?.ToString("yyyy-MM-dd"))" />
+                            </div>
+
+                            <div class="col-12 text-end mt-3">
+                                <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-1">
+                                    <i class="bi bi-x-circle me-1"></i> Limpiar
+                                </a>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-search me-1"></i> Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feed de Publicaciones -->
+        @if (!Model.Any())
+        {
+            <div class="card shadow-sm border-0 rounded-3 text-center p-5 my-4">
+                <i class="bi bi-chat-square-quote text-muted" style="font-size: 3.5rem;"></i>
+                <h5 class="fw-bold text-secondary mt-3">No hay publicaciones para mostrar</h5>
+                <p class="text-muted small">
+                    @(filter.HasActiveFilters ? "No se encontraron publicaciones que coincidan con los filtros aplicados." : "¡Escribe tu primera publicación usando el formulario de arriba!")
+                </p>
+                @if (filter.HasActiveFilters)
+                {
+                    <div>
+                        <a asp-action="Index" class="btn btn-sm btn-outline-primary">Limpiar Filtros</a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            @foreach (var post in Model)
+            {
+                <div class="card shadow-sm border-0 rounded-3 mb-4" id="post-@post.Id">
+                    <!-- Encabezado de la Publicación -->
+                    <div class="card-body p-4 pb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="@(string.IsNullOrWhiteSpace(post.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : post.AuthorProfilePictureUrl)" 
+                                     alt="@post.AuthorName" 
+                                     class="rounded-circle me-3 shadow-sm" 
+                                     style="width: 46px; height: 46px; object-fit: cover;"
+                                     onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(post.AuthorName)&background=0D6EFD&color=fff&size=46';" />
+                                <div>
+                                    <h6 class="mb-0 fw-bold">@post.AuthorName</h6>
+                                    <small class="text-muted">
+                                        @@@post.AuthorUserName &bull; @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")
+                                        @if (post.IsEdited)
+                                        {
+                                            <span class="badge bg-light text-secondary border ms-1" title="Editado el @post.UpdatedAt?.ToLocalTime().ToString("g")">Editado</span>
+                                        }
+                                        <span class="badge @(post.Privacy == PostPrivacy.FriendsOnly ? "bg-info text-dark" : "bg-secondary") ms-1">
+                                            @(post.Privacy == PostPrivacy.FriendsOnly ? "Solo amigos" : "Solo yo")
+                                        </span>
+                                    </small>
+                                </div>
+                            </div>
+
+                            @if (post.CanModify)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical fs-5"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <a class="dropdown-item" asp-action="Edit" asp-route-id="@post.Id">
+                                                <i class="bi bi-pencil me-2"></i> Editar
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <form asp-action="ToggleComments" asp-route-id="@post.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="bi @(post.AreCommentsDisabled ? "bi-chat-dots" : "bi-chat-dots-fill") me-2"></i>
+                                                    @(post.AreCommentsDisabled ? "Permitir Comentarios" : "Desactivar Comentarios")
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li><hr class="dropdown-menu-divider" /></li>
+                                        <li>
+                                            <form asp-action="Delete" asp-route-id="@post.Id" method="post" onsubmit="return confirm('¿Seguro que deseas eliminar esta publicación?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash3 me-2"></i> Eliminar
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Contenido de Texto -->
+                        <p class="card-text text-dark mb-3" style="white-space: pre-line;">@post.Content</p>
+                    </div>
+
+                    <!-- Contenido Multimedia -->
+                    @if (post.MediaType == PostMediaType.Image && !string.IsNullOrWhiteSpace(post.MediaUrl))
+                    {
+                        <div class="text-center bg-dark">
+                            <img src="@post.MediaUrl" alt="Imagen de publicación" class="img-fluid" style="max-height: 500px; width: 100%; object-fit: contain;" />
+                        </div>
+                    }
+                    else if (post.MediaType == PostMediaType.YouTube && !string.IsNullOrWhiteSpace(post.YouTubeEmbedUrl))
+                    {
+                        <div class="ratio ratio-16x9">
+                            <iframe src="@post.YouTubeEmbedUrl" title="Video de YouTube" allowfullscreen></iframe>
+                        </div>
+                    }
+
+                    <!-- Barra de Interacciones (Reacciones y Comentarios) -->
+                    <div class="card-body p-4 pt-3 pb-2 border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex gap-2">
+                                <!-- Botón Me Gusta -->
+                                <form asp-action="ToggleReaction" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="postId" value="@post.Id" />
+                                    <input type="hidden" name="type" value="1" />
+                                    <button type="submit" class="btn btn-sm @(post.UserReaction == ReactionType.Like ? "btn-primary" : "btn-outline-primary")">
+                                        <i class="bi bi-hand-thumbs-up-fill me-1"></i> @post.LikesCount
+                                    </button>
+                                </form>
+
+                                <!-- Botón No Me Gusta -->
+                                <form asp-action="ToggleReaction" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="postId" value="@post.Id" />
+                                    <input type="hidden" name="type" value="2" />
+                                    <button type="submit" class="btn btn-sm @(post.UserReaction == ReactionType.Dislike ? "btn-danger" : "btn-outline-danger")">
+                                        <i class="bi bi-hand-thumbs-down-fill me-1"></i> @post.DislikesCount
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div>
+                                <span class="text-muted small">
+                                    <i class="bi bi-chat-text me-1"></i> @post.Comments.Count comentarios
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Comentarios -->
+                    <div class="card-footer bg-light p-4 pt-3">
+                        @if (post.AreCommentsDisabled)
+                        {
+                            <div class="alert alert-secondary small py-2 mb-3" role="alert">
+                                <i class="bi bi-chat-slash me-1"></i> Los comentarios están desactivados para esta publicación.
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Formulario de Nuevo Comentario -->
+                            <form asp-action="AddComment" method="post" class="mb-3">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="PostId" value="@post.Id" />
+                                <div class="input-group">
+                                    <input type="text" name="Content" class="form-control form-control-sm" placeholder="Escribe un comentario..." required />
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-send"></i> Comentar
+                                    </button>
+                                </div>
+                            </form>
+                        }
+
+                        <!-- Hilos de Comentarios Anidados -->
+                        @if (post.Comments.Any())
+                        {
+                            <div class="comments-thread mt-3">
+                                @foreach (var comment in post.Comments)
+                                {
+                                    <div class="comment-item mb-3" id="comment-@comment.Id">
+                                        <div class="d-flex align-items-start">
+                                            <img src="@(string.IsNullOrWhiteSpace(comment.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : comment.AuthorProfilePictureUrl)" 
+                                                 alt="@comment.AuthorName" 
+                                                 class="rounded-circle me-2" 
+                                                 style="width: 32px; height: 32px; object-fit: cover;"
+                                                 onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(comment.AuthorName)&background=6c757d&color=fff&size=32';" />
+
+                                            <div class="bg-white p-2 px-3 rounded-3 shadow-sm flex-grow-1 border">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <strong class="small text-dark">@comment.AuthorName</strong>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <small class="text-muted" style="font-size: 0.75rem;">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+                                                        @if (comment.CanDelete && !comment.IsDeleted)
+                                                        {
+                                                            <form asp-action="DeleteComment" asp-route-id="@comment.Id" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar comentario?');">
+                                                                @Html.AntiForgeryToken()
+                                                                <button type="submit" class="btn btn-link text-danger p-0 border-0" style="font-size: 0.8rem;" title="Eliminar">
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <p class="mb-1 small @(comment.IsDeleted ? "text-muted fst-italic" : "text-secondary")">
+                                                    @comment.Content
+                                                </p>
+
+                                                @if (!post.AreCommentsDisabled)
+                                                {
+                                                    <button class="btn btn-link p-0 text-decoration-none small text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#reply-form-@comment.Id" style="font-size: 0.8rem;">
+                                                        <i class="bi bi-reply"></i> Responder
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <!-- Formulario de Respuesta Anidada -->
+                                        @if (!post.AreCommentsDisabled)
+                                        {
+                                            <div class="collapse ms-4 ps-2 mt-2" id="reply-form-@comment.Id">
+                                                <form asp-action="AddComment" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="PostId" value="@post.Id" />
+                                                    <input type="hidden" name="ParentCommentId" value="@comment.Id" />
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="text" name="Content" class="form-control" placeholder="Escribe una respuesta a @comment.AuthorName..." required />
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">Responder</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        }
+
+                                        <!-- Respuestas Anidadas (Segundo Nivel) -->
+                                        @if (comment.Replies.Any())
+                                        {
+                                            <div class="replies ms-4 ps-2 mt-2 border-start border-2 border-primary-subtle">
+                                                @foreach (var reply in comment.Replies)
+                                                {
+                                                    <div class="reply-item d-flex align-items-start mb-2" id="comment-@reply.Id">
+                                                        <img src="@(string.IsNullOrWhiteSpace(reply.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : reply.AuthorProfilePictureUrl)" 
+                                                             alt="@reply.AuthorName" 
+                                                             class="rounded-circle me-2" 
+                                                             style="width: 26px; height: 26px; object-fit: cover;"
+                                                             onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(reply.AuthorName)&background=6c757d&color=fff&size=26';" />
+
+                                                        <div class="bg-white p-2 px-3 rounded-3 shadow-sm flex-grow-1 border">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <strong class="small text-dark">@reply.AuthorName</strong>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <small class="text-muted" style="font-size: 0.7rem;">@reply.CreatedAt.ToLocalTime().ToString("g")</small>
+                                                                    @if (reply.CanDelete && !reply.IsDeleted)
+                                                                    {
+                                                                        <form asp-action="DeleteComment" asp-route-id="@reply.Id" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar respuesta?');">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <button type="submit" class="btn btn-link text-danger p-0 border-0" style="font-size: 0.75rem;" title="Eliminar">
+                                                                                <i class="bi bi-x-lg"></i>
+                                                                            </button>
+                                                                        </form>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                            <p class="mb-0 small @(reply.IsDeleted ? "text-muted fst-italic" : "text-secondary")">
+                                                                @reply.Content
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        const mediaSelect = document.getElementById('mediaTypeSelect');
+        const imgContainer = document.getElementById('imageUploadContainer');
+        const ytContainer = document.getElementById('youtubeUrlContainer');
+
+        if (mediaSelect) {
+            mediaSelect.addEventListener('change', function () {
+                const val = mediaSelect.value;
+                if (val === "1") {
+                    imgContainer.classList.remove('d-none');
+                    ytContainer.classList.add('d-none');
+                } else if (val === "2") {
+                    ytContainer.classList.remove('d-none');
+                    imgContainer.classList.add('d-none');
+                } else {
+                    imgContainer.classList.add('d-none');
+                    ytContainer.classList.add('d-none');
+                }
+            });
+        }
+    </script>
+}

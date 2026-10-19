@@ -1,3 +1,4 @@
+using LinkUpPro.Core.Application;
 using LinkUpPro.Core.Domain.Entities;
 using LinkUpPro.Infrastructure.Persistence;
 using LinkUpPro.Infrastructure.Persistence.Context;
@@ -8,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Registrar capa de Aplicación (Servicios de negocio)
+builder.Services.AddApplicationLayer();
 
 // Registrar infraestructura de Persistencia (DbContext y Repositorios)
 builder.Services.AddPersistenceInfrastructure(builder.Configuration);

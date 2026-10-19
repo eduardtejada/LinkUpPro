@@ -18,8 +18,9 @@ public static class ServiceRegistration
             options.UseSqlServer(connectionString,
                 b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-        // Repositorio genérico
+        // Repositorio genérico y específicos
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IPostRepository, PostRepository>();
 
         return services;
     }

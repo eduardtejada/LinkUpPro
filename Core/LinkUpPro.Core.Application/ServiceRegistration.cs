@@ -9,6 +9,7 @@ public static class ServiceRegistration
     public static IServiceCollection AddApplicationLayer(this IServiceCollection services)
     {
         services.AddTransient<IPostService, PostService>();
+        services.AddTransient<IFriendshipService, FriendshipService>();
 
         return services;
     }

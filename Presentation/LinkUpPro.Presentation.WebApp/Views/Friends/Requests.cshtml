@@ -1,0 +1,253 @@
+@model FriendRequestsPageViewModel
+@{
+    ViewData["Title"] = "Solicitudes de Amistad";
+}
+
+<!-- Alertas de Feedback -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <!-- Navegación superior -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-primary mb-0">
+                <i class="bi bi-person-plus-fill me-2"></i>Solicitudes de Amistad
+            </h3>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Mis Amigos
+            </a>
+        </div>
+
+        <!-- Tarjeta para Enviar Solicitud por Nombre de Usuario -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-2"><i class="bi bi-search me-2 text-primary"></i>Buscar y Conectar</h5>
+                <p class="text-muted small mb-3">Ingresa el nombre de usuario de la persona que deseas agregar como amigo.</p>
+
+                <form asp-action="SendRequest" method="post" class="row g-2 align-items-center">
+                    @Html.AntiForgeryToken()
+                    <div class="col-sm-8 col-md-9">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-at"></i></span>
+                            <input asp-for="SendModel.UserName" class="form-control" placeholder="Ej. juanperez123" required />
+                        </div>
+                        <span asp-validation-for="SendModel.UserName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-4 col-md-3">
+                        <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                            <i class="bi bi-send-fill me-1"></i> Enviar Solicitud
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 1. Solicitudes Recibidas Pendientes -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-inbox-fill text-warning me-2"></i>Solicitudes Recibidas Pendientes
+                    <span class="badge bg-warning text-dark ms-2">@Model.ReceivedPending.Count</span>
+                </h6>
+            </div>
+
+            <div class="card-body p-0">
+                @if (!Model.ReceivedPending.Any())
+                {
+                    <div class="text-center py-4 text-muted small">
+                        <i class="bi bi-envelope-open fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                        No tienes solicitudes de amistad pendientes por responder.
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var req in Model.ReceivedPending)
+                        {
+                            <div class="list-group-item p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center">
+                                    <img src="@(string.IsNullOrWhiteSpace(req.SenderProfilePictureUrl) ? "/images/default-avatar.png" : req.SenderProfilePictureUrl)" 
+                                         alt="@req.SenderName" 
+                                         class="rounded-circle me-3 shadow-sm" 
+                                         style="width: 48px; height: 48px; object-fit: cover;"
+                                         onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(req.SenderName)&background=0D6EFD&color=fff&size=48';" />
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-dark">@req.SenderName</h6>
+                                        <small class="text-muted">@@@req.SenderUserName &bull; Recibida @req.CreatedAt.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <!-- Aceptar Solicitud -->
+                                    <form asp-action="Accept" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success px-3 fw-semibold">
+                                            <i class="bi bi-check-lg me-1"></i> Aceptar
+                                        </button>
+                                    </form>
+
+                                    <!-- Rechazar Solicitud -->
+                                    <form asp-action="Reject" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-3">
+                                            <i class="bi bi-x-lg me-1"></i> Rechazar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 2. Solicitudes Enviadas Pendientes -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-send text-primary me-2"></i>Solicitudes Enviadas Pendientes
+                    <span class="badge bg-primary text-white ms-2">@Model.SentPending.Count</span>
+                </h6>
+            </div>
+
+            <div class="card-body p-0">
+                @if (!Model.SentPending.Any())
+                {
+                    <div class="text-center py-4 text-muted small">
+                        No tienes solicitudes enviadas en espera.
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var req in Model.SentPending)
+                        {
+                            <div class="list-group-item p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center">
+                                    <img src="@(string.IsNullOrWhiteSpace(req.ReceiverProfilePictureUrl) ? "/images/default-avatar.png" : req.ReceiverProfilePictureUrl)" 
+                                         alt="@req.ReceiverName" 
+                                         class="rounded-circle me-3 shadow-sm" 
+                                         style="width: 48px; height: 48px; object-fit: cover;"
+                                         onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(req.ReceiverName)&background=6c757d&color=fff&size=48';" />
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-dark">@req.ReceiverName</h6>
+                                        <small class="text-muted">@@@req.ReceiverUserName &bull; Enviada @req.CreatedAt.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <!-- Cancelar Solicitud Enviada -->
+                                    <form asp-action="Cancel" method="post" class="d-inline" onsubmit="return confirm('¿Deseas cancelar esta solicitud enviada?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i> Cancelar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 3. Historial de Solicitudes (Aceptadas, Rechazadas, Canceladas) con Ocultar Lógico -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-clock-history text-secondary me-2"></i>Historial de Solicitudes
+                </h6>
+            </div>
+
+            <div class="card-body p-0">
+                @if (!Model.History.Any())
+                {
+                    <div class="text-center py-4 text-muted small">
+                        El historial de solicitudes está vacío.
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var req in Model.History)
+                        {
+                            var otherName = req.IsSender ? req.ReceiverName : req.SenderName;
+                            var otherUser = req.IsSender ? req.ReceiverUserName : req.SenderUserName;
+                            var otherPhoto = req.IsSender ? req.ReceiverProfilePictureUrl : req.SenderProfilePictureUrl;
+
+                            <div class="list-group-item p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center">
+                                    <img src="@(string.IsNullOrWhiteSpace(otherPhoto) ? "/images/default-avatar.png" : otherPhoto)" 
+                                         alt="@otherName" 
+                                         class="rounded-circle me-3 shadow-sm" 
+                                         style="width: 40px; height: 40px; object-fit: cover;"
+                                         onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(otherName)&background=6c757d&color=fff&size=40';" />
+                                    <div>
+                                        <div class="fw-semibold text-dark">
+                                            @otherName <small class="text-muted">@@@otherUser</small>
+                                        </div>
+                                        <small class="text-muted">
+                                            @(req.IsSender ? "Enviada por ti" : "Recibida") &bull; @(req.RespondedAt?.ToLocalTime().ToString("g") ?? req.CreatedAt.ToLocalTime().ToString("g"))
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    @switch (req.Status)
+                                    {
+                                        case FriendRequestStatus.Accepted:
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                <i class="bi bi-check-circle me-1"></i> Aceptada
+                                            </span>
+                                            break;
+                                        case FriendRequestStatus.Rejected:
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                                <i class="bi bi-x-circle me-1"></i> Rechazada
+                                            </span>
+                                            break;
+                                        case FriendRequestStatus.Cancelled:
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                                                <i class="bi bi-dash-circle me-1"></i> Cancelada
+                                            </span>
+                                            break;
+                                    }
+
+                                    <!-- Ocultar del Historial (Sin eliminar físicamente según rúbrica) -->
+                                    <form asp-action="Hide" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@req.Id" />
+                                        <button type="submit" class="btn btn-sm btn-link text-muted p-0 ms-2" title="Ocultar del historial">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

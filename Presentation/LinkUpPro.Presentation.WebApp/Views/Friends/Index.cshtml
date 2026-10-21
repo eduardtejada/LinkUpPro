@@ -1,0 +1,423 @@
+@model FriendsIndexViewModel
+@{
+    ViewData["Title"] = "Amigos y Feed de Amigos";
+}
+
+<!-- Mensajes de feedback -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Barra de Estadísticas y Navegación de Amistades -->
+<div class="card shadow-sm border-0 rounded-3 mb-4 bg-primary text-white">
+    <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="bi bi-people-fill me-2"></i>Comunidad de Amigos</h3>
+            <p class="mb-0 opacity-75">
+                Tienes <span class="badge bg-light text-primary fs-6 px-2">@Model.ActiveFriendsCount</span> amigos activos y 
+                <span class="badge bg-warning text-dark fs-6 px-2">@Model.AvailablePostsCount</span> publicaciones disponibles para ver.
+            </p>
+        </div>
+        <div>
+            <a asp-action="Requests" class="btn btn-warning text-dark fw-bold px-3 py-2 shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> Gestionar Solicitudes
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Columna Izquierda: Listado Interactivo de Amigos Activos -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 rounded-3 sticky-top" style="top: 85px;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-person-check-fill text-success me-2"></i>Mis Amigos (@Model.ActiveFriendsCount)
+                </h5>
+            </div>
+
+            <div class="card-body p-3" style="max-height: 700px; overflow-y: auto;">
+                @if (!Model.ActiveFriends.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-person-x fs-1"></i>
+                        <p class="small mt-2 mb-0">Aún no tienes amigos agregados.</p>
+                        <a asp-action="Requests" class="btn btn-sm btn-outline-primary mt-2">
+                            Enviar Solicitud
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var friend in Model.ActiveFriends)
+                        {
+                            <div class="list-group-item px-0 py-3 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <img src="@(string.IsNullOrWhiteSpace(friend.ProfilePictureUrl) ? "/images/default-avatar.png" : friend.ProfilePictureUrl)" 
+                                         alt="@friend.FullName" 
+                                         class="rounded-circle me-3 shadow-sm" 
+                                         style="width: 48px; height: 48px; object-fit: cover;"
+                                         onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(friend.FullName)&background=0D6EFD&color=fff&size=48';" />
+
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 fw-bold text-dark">@friend.FullName</h6>
+                                        <small class="text-muted d-block">@@@friend.UserName</small>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                            Amigos desde @friend.FriendshipDate.ToString("MMM yyyy")
+                                        </small>
+
+                                        <div class="mt-2 d-flex flex-wrap gap-1">
+                                            <!-- Botón Amigos en Común -->
+                                            @if (friend.MutualFriendsCount > 0)
+                                            {
+                                                <button type="button" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;" 
+                                                        onclick="showMutualFriends('@friend.FullName', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(friend.MutualFriends)))">
+                                                    <i class="bi bi-people me-1"></i>@friend.MutualFriendsCount en común
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Sin amigos en común</span>
+                                            }
+
+                                            <!-- Desafío Battleship -->
+                                            <a asp-controller="Battleship" asp-action="Create" asp-route-opponentId="@friend.UserId" 
+                                               class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.75rem;" title="Desafiar a Batalla Naval">
+                                                <i class="bi bi-crosshair me-1"></i>Jugar
+                                            </a>
+
+                                            <!-- Eliminar Amistad (Eliminación lógica) -->
+                                            <form asp-action="Remove" method="post" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar a @friend.FullName de tus amigos?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="friendId" value="@friend.UserId" />
+                                                <button type="submit" class="btn btn-link text-danger p-0 ms-1" style="font-size: 0.75rem;" title="Eliminar de amigos">
+                                                    <i class="bi bi-person-dash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Feed de Amigos con publicaciones 'Solo amigos' -->
+    <div class="col-lg-8">
+        <!-- Buscador y Filtros Combinables -->
+        <div class="card shadow-sm border-0 rounded-3 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-secondary">
+                    <i class="bi bi-funnel-fill me-1"></i> Filtrar publicaciones de amigos
+                </span>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#friendsFilterCollapse" aria-expanded="@(Model.Filter.HasActiveFilters ? "true" : "false")">
+                    <i class="bi bi-sliders me-1"></i> @(Model.Filter.HasActiveFilters ? "Filtros Activos" : "Opciones")
+                </button>
+            </div>
+
+            <div class="collapse @(Model.Filter.HasActiveFilters ? "show" : "")" id="friendsFilterCollapse">
+                <div class="card-body p-3 bg-light border-bottom">
+                    <form asp-action="Index" method="get">
+                        <div class="row g-2">
+                            <div class="col-md-12">
+                                <input type="text" name="SearchTerm" class="form-control form-control-sm" placeholder="Buscar por contenido..." value="@Model.Filter.SearchTerm" />
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Tipo Multimedia</label>
+                                <select name="MediaType" class="form-select form-select-sm">
+                                    <option value="">Todas</option>
+                                    <option value="1" selected="@(Model.Filter.MediaType == PostMediaType.Image)">Solo Imágenes</option>
+                                    <option value="2" selected="@(Model.Filter.MediaType == PostMediaType.YouTube)">Solo YouTube</option>
+                                    <option value="0" selected="@(Model.Filter.MediaType == PostMediaType.None)">Sin Multimedia</option>
+                                </select>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Estado de Edición</label>
+                                <select name="EditStatus" class="form-select form-select-sm">
+                                    <option value="0" selected="@(Model.Filter.EditStatus == EditFilterStatus.All)">Todas</option>
+                                    <option value="1" selected="@(Model.Filter.EditStatus == EditFilterStatus.Edited)">Editadas</option>
+                                    <option value="2" selected="@(Model.Filter.EditStatus == EditFilterStatus.NotEdited)">No Editadas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Desde Fecha</label>
+                                <input type="date" name="StartDate" class="form-control form-control-sm" value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))" />
+                            </div>
+
+                            <div class="col-sm-6 col-md-3">
+                                <label class="form-label small mb-1">Hasta Fecha</label>
+                                <input type="date" name="EndDate" class="form-control form-control-sm" value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))" />
+                            </div>
+
+                            <div class="col-12 text-end mt-3">
+                                <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-1">
+                                    <i class="bi bi-x-circle me-1"></i> Limpiar
+                                </a>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-search me-1"></i> Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Muro de Publicaciones de Amigos -->
+        @if (!Model.FriendsPosts.Any())
+        {
+            <div class="card shadow-sm border-0 rounded-3 text-center p-5 my-2">
+                <i class="bi bi-postcard-heart text-muted" style="font-size: 3.5rem;"></i>
+                <h5 class="fw-bold text-secondary mt-3">No hay publicaciones de amigos disponibles</h5>
+                <p class="text-muted small">
+                    @(Model.Filter.HasActiveFilters 
+                        ? "No se encontraron publicaciones con los filtros aplicados." 
+                        : "Cuando tus amigos compartan publicaciones con privacidad 'Solo amigos', aparecerán en este feed.")
+                </p>
+            </div>
+        }
+        else
+        {
+            @foreach (var post in Model.FriendsPosts)
+            {
+                <div class="card shadow-sm border-0 rounded-3 mb-4" id="post-@post.Id">
+                    <!-- Encabezado de la Publicación -->
+                    <div class="card-body p-4 pb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="@(string.IsNullOrWhiteSpace(post.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : post.AuthorProfilePictureUrl)" 
+                                     alt="@post.AuthorName" 
+                                     class="rounded-circle me-3 shadow-sm" 
+                                     style="width: 46px; height: 46px; object-fit: cover;"
+                                     onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(post.AuthorName)&background=0D6EFD&color=fff&size=46';" />
+                                <div>
+                                    <h6 class="mb-0 fw-bold">@post.AuthorName</h6>
+                                    <small class="text-muted">
+                                        @@@post.AuthorUserName &bull; @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")
+                                        @if (post.IsEdited)
+                                        {
+                                            <span class="badge bg-light text-secondary border ms-1">Editado</span>
+                                        }
+                                        <span class="badge bg-info text-dark ms-1">Solo amigos</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenido -->
+                        <p class="card-text text-dark mb-3" style="white-space: pre-line;">@post.Content</p>
+                    </div>
+
+                    <!-- Multimedia -->
+                    @if (post.MediaType == PostMediaType.Image && !string.IsNullOrWhiteSpace(post.MediaUrl))
+                    {
+                        <div class="text-center bg-dark">
+                            <img src="@post.MediaUrl" alt="Imagen de publicación" class="img-fluid" style="max-height: 500px; width: 100%; object-fit: contain;" />
+                        </div>
+                    }
+                    else if (post.MediaType == PostMediaType.YouTube && !string.IsNullOrWhiteSpace(post.YouTubeEmbedUrl))
+                    {
+                        <div class="ratio ratio-16x9">
+                            <iframe src="@post.YouTubeEmbedUrl" title="Video de YouTube" allowfullscreen></iframe>
+                        </div>
+                    }
+
+                    <!-- Reacciones y Comentarios -->
+                    <div class="card-body p-4 pt-3 pb-2 border-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex gap-2">
+                                <form asp-controller="Home" asp-action="ToggleReaction" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="postId" value="@post.Id" />
+                                    <input type="hidden" name="type" value="1" />
+                                    <button type="submit" class="btn btn-sm @(post.UserReaction == ReactionType.Like ? "btn-primary" : "btn-outline-primary")">
+                                        <i class="bi bi-hand-thumbs-up-fill me-1"></i> @post.LikesCount
+                                    </button>
+                                </form>
+
+                                <form asp-controller="Home" asp-action="ToggleReaction" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="postId" value="@post.Id" />
+                                    <input type="hidden" name="type" value="2" />
+                                    <button type="submit" class="btn btn-sm @(post.UserReaction == ReactionType.Dislike ? "btn-danger" : "btn-outline-danger")">
+                                        <i class="bi bi-hand-thumbs-down-fill me-1"></i> @post.DislikesCount
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div>
+                                <span class="text-muted small">
+                                    <i class="bi bi-chat-text me-1"></i> @post.Comments.Count comentarios
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comentarios en Feed de Amigos -->
+                    <div class="card-footer bg-light p-4 pt-3">
+                        @if (post.AreCommentsDisabled)
+                        {
+                            <div class="alert alert-secondary small py-2 mb-3">
+                                <i class="bi bi-chat-slash me-1"></i> Los comentarios están desactivados en esta publicación.
+                            </div>
+                        }
+                        else
+                        {
+                            <form asp-controller="Home" asp-action="AddComment" method="post" class="mb-3">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="PostId" value="@post.Id" />
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="Content" class="form-control" placeholder="Escribe un comentario..." required />
+                                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Comentar</button>
+                                </div>
+                            </form>
+                        }
+
+                        @if (post.Comments.Any())
+                        {
+                            <div class="comments-thread mt-3">
+                                @foreach (var comment in post.Comments)
+                                {
+                                    <div class="comment-item mb-2" id="comment-@comment.Id">
+                                        <div class="d-flex align-items-start">
+                                            <img src="@(string.IsNullOrWhiteSpace(comment.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : comment.AuthorProfilePictureUrl)" 
+                                                 alt="@comment.AuthorName" 
+                                                 class="rounded-circle me-2" 
+                                                 style="width: 30px; height: 30px; object-fit: cover;"
+                                                 onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(comment.AuthorName)&background=6c757d&color=fff&size=30';" />
+
+                                            <div class="bg-white p-2 px-3 rounded-3 shadow-sm flex-grow-1 border">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <strong class="small text-dark">@comment.AuthorName</strong>
+                                                    <small class="text-muted" style="font-size: 0.7rem;">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+                                                </div>
+                                                <p class="mb-1 small @(comment.IsDeleted ? "text-muted fst-italic" : "text-secondary")">
+                                                    @comment.Content
+                                                </p>
+
+                                                @if (!post.AreCommentsDisabled)
+                                                {
+                                                    <button class="btn btn-link p-0 text-decoration-none small text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#friend-reply-form-@comment.Id" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-reply"></i> Responder
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        @if (!post.AreCommentsDisabled)
+                                        {
+                                            <div class="collapse ms-4 ps-2 mt-2" id="friend-reply-form-@comment.Id">
+                                                <form asp-controller="Home" asp-action="AddComment" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="PostId" value="@post.Id" />
+                                                    <input type="hidden" name="ParentCommentId" value="@comment.Id" />
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="text" name="Content" class="form-control" placeholder="Responder a @comment.AuthorName..." required />
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">Responder</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        }
+
+                                        @if (comment.Replies.Any())
+                                        {
+                                            <div class="replies ms-4 ps-2 mt-2 border-start border-2 border-primary-subtle">
+                                                @foreach (var reply in comment.Replies)
+                                                {
+                                                    <div class="reply-item d-flex align-items-start mb-2">
+                                                        <img src="@(string.IsNullOrWhiteSpace(reply.AuthorProfilePictureUrl) ? "/images/default-avatar.png" : reply.AuthorProfilePictureUrl)" 
+                                                             alt="@reply.AuthorName" 
+                                                             class="rounded-circle me-2" 
+                                                             style="width: 24px; height: 24px; object-fit: cover;"
+                                                             onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(reply.AuthorName)&background=6c757d&color=fff&size=24';" />
+
+                                                        <div class="bg-white p-2 px-3 rounded-3 shadow-sm flex-grow-1 border">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <strong class="small text-dark">@reply.AuthorName</strong>
+                                                                <small class="text-muted" style="font-size: 0.65rem;">@reply.CreatedAt.ToLocalTime().ToString("g")</small>
+                                                            </div>
+                                                            <p class="mb-0 small @(reply.IsDeleted ? "text-muted fst-italic" : "text-secondary")">
+                                                                @reply.Content
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Modal Interactivo de Amigos en Común -->
+<div class="modal fade" id="mutualFriendsModal" tabindex="-1" aria-labelledby="mutualFriendsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="mutualFriendsModalLabel">Amigos en común</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="mutualFriendsList" class="list-group list-group-flush">
+                    <!-- Cargado dinámicamente con JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showMutualFriends(friendName, mutuals) {
+            document.getElementById('mutualFriendsModalLabel').textContent = 'Amigos en común con ' + friendName;
+            const container = document.getElementById('mutualFriendsList');
+            container.innerHTML = '';
+
+            if (!mutuals || mutuals.length === 0) {
+                container.innerHTML = '<div class="p-3 text-center text-muted small">No hay amigos en común.</div>';
+            } else {
+                mutuals.forEach(m => {
+                    const avatar = m.ProfilePictureUrl || '/images/default-avatar.png';
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item d-flex align-items-center py-2 px-3';
+                    item.innerHTML = `
+                        <img src="${avatar}" alt="${m.FullName}" class="rounded-circle me-2 shadow-sm" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.FullName)}&background=0D6EFD&color=fff&size=32';" />
+                        <div>
+                            <div class="fw-semibold small text-dark">${m.FullName}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">@@${m.UserName}</div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('mutualFriendsModal'));
+            modal.show();
+        }
+    </script>
+}

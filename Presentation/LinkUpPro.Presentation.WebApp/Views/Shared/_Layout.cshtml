@@ -123,6 +123,36 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                fetch('/Notifications/GetCounts')
+                    .then(response => {
+                        if (response.ok) return response.json();
+                        return null;
+                    })
+                    .then(data => {
+                        if (!data) return;
+                        const reqBadge = document.getElementById('friendRequestsBadge');
+                        const notifBadge = document.getElementById('notificationsBadge');
+
+                        if (reqBadge && data.pendingRequests > 0) {
+                            reqBadge.textContent = data.pendingRequests;
+                            reqBadge.classList.remove('d-none');
+                        }
+
+                        if (notifBadge && data.unreadNotifications > 0) {
+                            notifBadge.textContent = data.unreadNotifications;
+                            notifBadge.classList.remove('d-none');
+                        }
+                    })
+                    .catch(err => console.error('Error cargando badges:', err));
+            });
+        </script>
+    }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

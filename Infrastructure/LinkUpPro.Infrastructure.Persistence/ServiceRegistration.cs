@@ -22,6 +22,7 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         return services;
     }

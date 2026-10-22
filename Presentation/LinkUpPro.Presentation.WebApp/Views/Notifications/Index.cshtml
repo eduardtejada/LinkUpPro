@@ -1,0 +1,118 @@
+@model IReadOnlyList<NotificationViewModel>
+@{
+    ViewData["Title"] = "Notificaciones";
+    int unreadCount = ViewBag.UnreadCount ?? 0;
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-bell-fill me-2"></i>Notificaciones
+                    </h5>
+                    @if (unreadCount > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">@unreadCount no leídas</span>
+                    }
+                </div>
+
+                @if (unreadCount > 0)
+                {
+                    <form asp-action="MarkAllAsRead" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-check2-all me-1"></i> Marcar todas como leídas
+                        </button>
+                    </form>
+                }
+            </div>
+
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <h6 class="fw-bold text-secondary">No tienes notificaciones</h6>
+                        <p class="small mb-0">Te avisaremos cuando alguien interactúe contigo o tus publicaciones.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var notif in Model)
+                        {
+                            <div class="list-group-item p-3 border-bottom @(!notif.IsRead ? "bg-light-subtle border-start border-4 border-primary" : "")">
+                                <div class="d-flex align-items-start justify-content-between gap-2">
+                                    <div class="d-flex align-items-start">
+                                        <!-- Avatar con Icono de Tipo superpuesto -->
+                                        <div class="position-relative me-3">
+                                            <img src="@(string.IsNullOrWhiteSpace(notif.ActorProfilePictureUrl) ? "/images/default-avatar.png" : notif.ActorProfilePictureUrl)" 
+                                                 alt="@notif.ActorName" 
+                                                 class="rounded-circle shadow-sm" 
+                                                 style="width: 44px; height: 44px; object-fit: cover;"
+                                                 onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(notif.ActorName)&background=0D6EFD&color=fff&size=44';" />
+                                            <span class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow-sm d-flex align-items-center justify-content-center" style="width: 20px; height: 20px;">
+                                                <i class="bi @notif.IconClass" style="font-size: 0.75rem;"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <p class="mb-1 text-dark">
+                                                <strong class="text-dark">@notif.ActorName</strong>
+                                                <span class="text-muted">@@@notif.ActorUserName</span>
+                                                @notif.Message
+                                            </p>
+                                            <small class="text-muted" style="font-size: 0.75rem;">
+                                                <i class="bi bi-clock me-1"></i>@notif.CreatedAt.ToLocalTime().ToString("g")
+                                                @if (!notif.IsRead)
+                                                {
+                                                    <span class="badge bg-primary-subtle text-primary border ms-2">Nueva</span>
+                                                }
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrWhiteSpace(notif.TargetUrl))
+                                        {
+                                            <form asp-action="MarkAsRead" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@notif.Id" />
+                                                <input type="hidden" name="redirectUrl" value="@notif.TargetUrl" />
+                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                                    <i class="bi bi-box-arrow-up-right me-1"></i> Ver
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (!notif.IsRead)
+                                        {
+                                            <form asp-action="MarkAsRead" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@notif.Id" />
+                                                <button type="submit" class="btn btn-sm btn-link text-muted p-0" title="Marcar como leída">
+                                                    <i class="bi bi-check2"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

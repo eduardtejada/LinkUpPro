@@ -1,0 +1,269 @@
+@model BattleshipHistoryViewModel
+@{
+    ViewData["Title"] = $"Historial Final de Partida #{Model.GameId}";
+}
+
+<style>
+    .history-board-container {
+        display: inline-grid;
+        grid-template-columns: 28px repeat(12, 28px);
+        grid-template-rows: 28px repeat(12, 28px);
+        gap: 2px;
+        background-color: #0b2545;
+        padding: 5px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        user-select: none;
+    }
+
+    .hist-header-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: #8da9c4;
+    }
+
+    .hist-cell {
+        background-color: #134074;
+        border: 1px solid #1d4e89;
+        border-radius: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: default;
+    }
+
+    /* Acierto / Impacto: Rojo */
+    .hist-cell.cell-hit {
+        background-color: #dc3545 !important;
+        border-color: #b02a37 !important;
+        color: #ffffff;
+    }
+
+    /* Fallo / Agua: Verde */
+    .hist-cell.cell-miss {
+        background-color: #198754 !important;
+        border-color: #146c43 !important;
+        color: #ffffff;
+    }
+
+    /* Barco propio que no fue tocado: Azul */
+    .hist-cell.has-ship-intact {
+        background-color: #0d6efd !important;
+        border-color: #0b5ed7 !important;
+        color: #ffffff;
+    }
+</style>
+
+<!-- Mensajes -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Encabezado de Resultado -->
+<div class="card shadow-sm border-0 rounded-3 mb-4 @(Model.DidIWin ? "bg-success" : "bg-danger") text-white">
+    <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-white text-@(Model.DidIWin ? "success" : "danger") d-flex align-items-center justify-content-center p-3 shadow-sm" style="width: 65px; height: 65px;">
+                <i class="bi @(Model.DidIWin ? "bi-trophy-fill" : "bi-x-octagon-fill") fs-2"></i>
+            </div>
+            <div>
+                <h3 class="fw-bold mb-1">
+                    @(Model.DidIWin ? "¡VICTORIA EN ALTAMAR!" : "DERROTA")
+                </h3>
+                <p class="mb-0 opacity-90">
+                    Ganador de la batalla: <strong>@(Model.WinnerName ?? "No determinado")</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <span class="badge bg-white text-dark fs-6 px-3 py-2 mb-1">
+                @switch (Model.EndReason)
+                {
+                    case GameEndReason.AllShipsSunk:
+                        <span><i class="bi bi-fire text-danger me-1"></i>Flota Enemiga Hundida</span>
+                        break;
+                    case GameEndReason.Surrendered:
+                        <span><i class="bi bi-flag text-danger me-1"></i>Rendición de Jugador</span>
+                        break;
+                    case GameEndReason.TimedOut48h:
+                        <span><i class="bi bi-clock-history text-warning me-1"></i>Inactividad (+48h)</span>
+                        break;
+                    default:
+                        <span>Partida Concluida</span>
+                        break;
+                }
+            </span>
+            <div class="small opacity-75 mt-1">
+                <span>Iniciada: @Model.CreatedAt.ToString("g")</span> &bull; 
+                <span>Finalizada: @(Model.FinishedAt?.ToString("g") ?? "N/D")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Acción y Volver -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Volver al Menú de Battleship
+    </a>
+    <span class="text-muted small">
+        <i class="bi bi-info-circle me-1"></i> Tableros finales en solo lectura para auditoría y consulta histórica.
+    </span>
+</div>
+
+<!-- Los 3 Tableros Reglamentarios (Rúbrica) -->
+<div class="row g-4 mb-4">
+    <!-- 1. Colocación de Tus Barcos (con impactos) -->
+    <div class="col-lg-4 text-center">
+        <div class="card shadow-sm border-0 rounded-3 p-3 h-100">
+            <div class="card-header bg-white border-0 pb-2">
+                <h6 class="fw-bold mb-0 text-primary">
+                    <i class="bi bi-shield-lock me-1"></i> 1. Colocación de Tus Barcos
+                </h6>
+                <small class="text-muted d-block mt-1">Tus 5 naves y los impactos que recibieron.</small>
+            </div>
+
+            <div class="card-body p-2 d-flex justify-content-center overflow-auto">
+                <div class="history-board-container">
+                    <div class="hist-header-cell"></div>
+                    @for (char c = 'A'; c <= 'L'; c++)
+                    {
+                        <div class="hist-header-cell">@c</div>
+                    }
+
+                    @for (int r = 0; r < 12; r++)
+                    {
+                        <div class="hist-header-cell">@(r + 1)</div>
+                        @for (int col = 0; col < 12; col++)
+                        {
+                            var cell = Model.MyFleetBoard[r][col];
+
+                            <div class="hist-cell @(cell.IsHit ? "cell-hit" : (cell.IsMiss ? "cell-miss" : (cell.HasShip ? "has-ship-intact" : "")))">
+                                @if (cell.IsHit)
+                                {
+                                    <i class="bi bi-fire text-white" style="font-size: 0.75rem;"></i>
+                                }
+                                else if (cell.IsMiss)
+                                {
+                                    <i class="bi bi-droplet-fill text-white" style="font-size: 0.65rem;"></i>
+                                }
+                                else if (cell.HasShip)
+                                {
+                                    <i class="bi bi-record-circle text-white" style="font-size: 0.6rem;"></i>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-0 pt-2 d-flex justify-content-center gap-2 small">
+                <span><span class="badge bg-primary me-1">Azul</span> Intacto</span>
+                <span><span class="badge bg-danger me-1">Rojo</span> Impactado</span>
+                <span><span class="badge bg-success me-1">Verde</span> Agua</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Tablero de Ataques Realizados por Ti -->
+    <div class="col-lg-4 text-center">
+        <div class="card shadow-sm border-0 rounded-3 p-3 h-100">
+            <div class="card-header bg-white border-0 pb-2">
+                <h6 class="fw-bold mb-0 text-danger">
+                    <i class="bi bi-crosshair me-1"></i> 2. Tus Ataques Realizados
+                </h6>
+                <small class="text-muted d-block mt-1">Todos los disparos que realizaste contra el rival.</small>
+            </div>
+
+            <div class="card-body p-2 d-flex justify-content-center overflow-auto">
+                <div class="history-board-container">
+                    <div class="hist-header-cell"></div>
+                    @for (char c = 'A'; c <= 'L'; c++)
+                    {
+                        <div class="hist-header-cell">@c</div>
+                    }
+
+                    @for (int r = 0; r < 12; r++)
+                    {
+                        <div class="hist-header-cell">@(r + 1)</div>
+                        @for (int col = 0; col < 12; col++)
+                        {
+                            var cell = Model.MyAttacksBoard[r][col];
+
+                            <div class="hist-cell @(cell.IsHit ? "cell-hit" : (cell.IsMiss ? "cell-miss" : ""))">
+                                @if (cell.IsHit)
+                                {
+                                    <i class="bi bi-fire text-white" style="font-size: 0.75rem;"></i>
+                                }
+                                else if (cell.IsMiss)
+                                {
+                                    <i class="bi bi-droplet-fill text-white" style="font-size: 0.65rem;"></i>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-0 pt-2 d-flex justify-content-center gap-2 small">
+                <span><span class="badge bg-danger me-1">Rojo</span> Acierto</span>
+                <span><span class="badge bg-success me-1">Verde</span> Agua</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Tablero de Ataques Realizados por el Rival -->
+    <div class="col-lg-4 text-center">
+        <div class="card shadow-sm border-0 rounded-3 p-3 h-100">
+            <div class="card-header bg-white border-0 pb-2">
+                <h6 class="fw-bold mb-0 text-secondary">
+                    <i class="bi bi-radar me-1"></i> 3. Ataques del Oponente
+                </h6>
+                <small class="text-muted d-block mt-1">Disparos que @Model.OpponentName efectuó.</small>
+            </div>
+
+            <div class="card-body p-2 d-flex justify-content-center overflow-auto">
+                <div class="history-board-container">
+                    <div class="hist-header-cell"></div>
+                    @for (char c = 'A'; c <= 'L'; c++)
+                    {
+                        <div class="hist-header-cell">@c</div>
+                    }
+
+                    @for (int r = 0; r < 12; r++)
+                    {
+                        <div class="hist-header-cell">@(r + 1)</div>
+                        @for (int col = 0; col < 12; col++)
+                        {
+                            var cell = Model.OpponentAttacksBoard[r][col];
+
+                            <div class="hist-cell @(cell.IsHit ? "cell-hit" : (cell.IsMiss ? "cell-miss" : ""))">
+                                @if (cell.IsHit)
+                                {
+                                    <i class="bi bi-fire text-white" style="font-size: 0.75rem;"></i>
+                                }
+                                else if (cell.IsMiss)
+                                {
+                                    <i class="bi bi-droplet-fill text-white" style="font-size: 0.65rem;"></i>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-0 pt-2 d-flex justify-content-center gap-2 small">
+                <span><span class="badge bg-danger me-1">Rojo</span> Acierto</span>
+                <span><span class="badge bg-success me-1">Verde</span> Agua</span>
+            </div>
+        </div>
+    </div>
+</div>

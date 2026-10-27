@@ -24,6 +24,13 @@ public class EmailService : IEmailService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(_emailSettings.SmtpHost) || 
+                _emailSettings.SmtpHost.Contains("example.com", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("SMTP no configurado en appsettings.json. Se omite conexión remota.");
+                return;
+            }
+
             var email = new MimeMessage();
             email.Sender = new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail);
             email.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail));
@@ -43,14 +50,13 @@ public class EmailService : IEmailService
             email.Body = builder.ToMessageBody();
 
             using var smtp = new SmtpClient();
-            
-            // Conectar al servidor SMTP
+            smtp.Timeout = 3000; // Timeout de máximo 3 segundos
+
             await smtp.ConnectAsync(
                 _emailSettings.SmtpHost, 
                 _emailSettings.SmtpPort, 
                 _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto);
 
-            // Autenticar si hay credenciales configuradas
             if (!string.IsNullOrWhiteSpace(_emailSettings.SmtpUser) && !string.IsNullOrWhiteSpace(_emailSettings.SmtpPassword))
             {
                 await smtp.AuthenticateAsync(_emailSettings.SmtpUser, _emailSettings.SmtpPassword);
@@ -59,28 +65,32 @@ public class EmailService : IEmailService
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
 
-            _logger.LogInformation("Correo enviado exitosamente a {To} con asunto: {Subject}", request.To, request.Subject);
+            _logger.LogInformation("Correo enviado exitosamente a {To}", request.To);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al enviar correo a {To}", request.To);
-            // No bloqueamos el flujo principal si el servidor SMTP de prueba no responde
+            _logger.LogWarning(ex, "No se pudo conectar al servidor SMTP para {To}. La ejecución continúa con normalidad.", request.To);
         }
     }
 
     public async Task SendAccountActivationEmailAsync(string email, string userName, string activationUrl)
     {
-        var subject = "Activa tu cuenta en LinkUp Pro";
+        Console.WriteLine("\n==================================================================");
+        Console.WriteLine($"[Copia de Facebook] ENLACE DE ACTIVACIÓN PARA: {email}");
+        Console.WriteLine(activationUrl);
+        Console.WriteLine("==================================================================\n");
+
+        var subject = "Activa tu cuenta en Copia de Facebook";
         var body = $"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <h2 style="color: #0d6efd; text-align: center;">¡Bienvenido a LinkUp Pro, {userName}!</h2>
-                <p>Gracias por unirte a nuestra comunidad. Para comenzar a interactuar y jugar, necesitas activar tu cuenta haciendo clic en el siguiente enlace:</p>
+                <h2 style="color: #1877f2; text-align: center;">¡Bienvenido a Copia de Facebook, {userName}!</h2>
+                <p>Gracias por unirte a nuestra comunidad. Para activar tu cuenta, haz clic en el siguiente botón:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="{activationUrl}" style="background-color: #0d6efd; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Activar mi cuenta</a>
+                    <a href="{activationUrl}" style="background-color: #1877f2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Activar mi cuenta</a>
                 </div>
-                <p style="color: #6c757d; font-size: 0.9em;">Este enlace es válido por 24 horas y de un solo uso. Si no creaste una cuenta, puedes ignorar este mensaje.</p>
+                <p style="color: #65676b; font-size: 0.9em;">Este enlace es válido por 24 horas y de un solo uso.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 0.8em; color: #adb5bd; text-align: center;">LinkUp Pro &copy; 2026 - Red Social y Batalla Naval</p>
+                <p style="font-size: 0.8em; color: #8a8d91; text-align: center;">Copia de Facebook &copy; 2026</p>
             </div>
             """;
 
@@ -95,17 +105,22 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(string email, string userName, string resetUrl)
     {
-        var subject = "Restablece tu contraseña - LinkUp Pro";
+        Console.WriteLine("\n==================================================================");
+        Console.WriteLine($"[Copia de Facebook] ENLACE DE RECUPERACIÓN PARA: {email}");
+        Console.WriteLine(resetUrl);
+        Console.WriteLine("==================================================================\n");
+
+        var subject = "Restablece tu contraseña - Copia de Facebook";
         var body = $"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <h2 style="color: #dc3545; text-align: center;">Recuperación de Contraseña</h2>
-                <p>Hola {userName}, hemos recibido una solicitud para restablecer la contraseña de tu cuenta en LinkUp Pro.</p>
+                <h2 style="color: #1877f2; text-align: center;">Recuperación de Contraseña</h2>
+                <p>Hola {userName}, recibimos una solicitud para restablecer tu contraseña. Haz clic a continuación:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="{resetUrl}" style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Restablecer Contraseña</a>
+                    <a href="{resetUrl}" style="background-color: #1877f2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Restablecer mi contraseña</a>
                 </div>
-                <p style="color: #6c757d; font-size: 0.9em;">Este enlace es válido por 1 hora. Si tú no realizaste esta solicitud, puedes ignorar este correo de forma segura.</p>
+                <p style="color: #65676b; font-size: 0.9em;">Este enlace es válido por 1 hora.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 0.8em; color: #adb5bd; text-align: center;">LinkUp Pro &copy; 2026 - Seguridad de Cuentas</p>
+                <p style="font-size: 0.8em; color: #8a8d91; text-align: center;">Copia de Facebook &copy; 2026</p>
             </div>
             """;
 

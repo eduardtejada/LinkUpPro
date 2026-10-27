@@ -1,15 +1,18 @@
 @model RegisterViewModel
 @{
-    ViewData["Title"] = "Crear Cuenta";
+    ViewData["Title"] = "Crear Cuenta - Copia de Facebook";
 }
 
 <div class="row justify-content-center my-4">
     <div class="col-md-7 col-lg-6">
-        <div class="card shadow-sm border-0 rounded-3">
+        <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
                 <div class="text-center mb-4">
-                    <h2 class="fw-bold text-primary">Únete a LinkUp Pro</h2>
-                    <p class="text-muted">Conéctate con amigos y desafíalos en Batalla Naval</p>
+                    <div class="d-inline-flex align-items-center justify-content-center mb-2">
+                        <i class="bi bi-facebook fs-1 text-primary"></i>
+                    </div>
+                    <h3 class="fw-bold text-primary mb-1">Copia de Facebook</h3>
+                    <p class="text-muted small">Es rápido y fácil. Conecta con tus amigos hoy mismo.</p>
                 </div>
 
                 @if (ViewBag.ErrorMessage != null)
@@ -20,45 +23,48 @@
                     </div>
                 }
 
-                <form asp-action="Register" method="post" enctype="multipart/form-data" novalidate>
+                <form asp-action="Register" method="post" enctype="multipart/form-data" id="registerForm" novalidate>
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                     <div class="row g-3">
                         <div class="col-sm-6">
                             <label asp-for="FirstName" class="form-label fw-semibold"></label>
-                            <input asp-for="FirstName" class="form-control" placeholder="Ej. Juan" />
+                            <input asp-for="FirstName" class="form-control" placeholder="Nombre" required />
                             <span asp-validation-for="FirstName" class="text-danger small"></span>
                         </div>
 
                         <div class="col-sm-6">
                             <label asp-for="LastName" class="form-label fw-semibold"></label>
-                            <input asp-for="LastName" class="form-control" placeholder="Ej. Pérez" />
+                            <input asp-for="LastName" class="form-control" placeholder="Apellido" required />
                             <span asp-validation-for="LastName" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12">
                             <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
-                                <input asp-for="PhoneNumber" class="form-control" placeholder="809-xxx-xxxx / 829 / 849" />
+                                <span class="input-group-text bg-light"><i class="bi bi-telephone text-muted"></i></span>
+                                <input asp-for="PhoneNumber" class="form-control" id="phoneInput" placeholder="809-xxx-xxxx" maxlength="12" autocomplete="tel" />
                             </div>
-                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small" id="phoneServerValidation"></span>
+                            <span id="phoneRealtimeError" class="text-danger small d-none mt-1"></span>
                         </div>
 
                         <div class="col-12">
                             <label asp-for="Email" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                <input asp-for="Email" class="form-control" placeholder="nombre@correo.com" />
+                                <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+                                <input asp-for="Email" class="form-control" id="emailInput" placeholder="ejemplo@correo.com" type="email" />
                             </div>
-                            <span asp-validation-for="Email" class="text-danger small"></span>
+                            <span asp-validation-for="Email" class="text-danger small" id="emailServerValidation"></span>
+                            <span id="emailRealtimeError" class="text-danger small d-none mt-1"></span>
                         </div>
 
                         <div class="col-12">
                             <label asp-for="UserName" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <input asp-for="UserName" class="form-control" placeholder="Elige un nombre de usuario único" />
+                                <span class="input-group-text bg-light"><i class="bi bi-at text-muted"></i></span>
+                                <input asp-for="UserName" class="form-control" placeholder="Nombre de usuario" />
                             </div>
                             <span asp-validation-for="UserName" class="text-danger small"></span>
                         </div>
@@ -66,14 +72,14 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Foto de Perfil <span class="text-muted fw-normal">(Opcional, máx. 5 MB)</span></label>
                             <input type="file" name="profilePicture" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
-                            <div class="form-text">Formatos permitidos: .jpg, .jpeg, .png, .webp.</div>
+                            <div class="form-text small">Formatos permitidos: .jpg, .jpeg, .png, .webp.</div>
                         </div>
 
                         <div class="col-12">
                             <label asp-for="Password" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                                <input asp-for="Password" class="form-control" id="passwordInput" placeholder="Crea una contraseña segura" />
+                                <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
+                                <input asp-for="Password" class="form-control" id="passwordInput" placeholder="Nueva contraseña" />
                             </div>
                             <span asp-validation-for="Password" class="text-danger small"></span>
 
@@ -99,22 +105,22 @@
                         <div class="col-12">
                             <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                                <span class="input-group-text bg-light"><i class="bi bi-lock-fill text-muted"></i></span>
                                 <input asp-for="ConfirmPassword" class="form-control" placeholder="Repite tu contraseña" />
                             </div>
                             <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                         </div>
 
                         <div class="col-12 mt-4">
-                            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-                                <i class="bi bi-person-plus-fill me-1"></i> Registrarse
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold fs-6 shadow-sm" id="btnRegisterSubmit">
+                                Registrarte
                             </button>
                         </div>
                     </div>
                 </form>
 
                 <div class="text-center mt-4 pt-3 border-top">
-                    <p class="text-muted mb-0">¿Ya tienes una cuenta? <a asp-action="Login" class="text-primary text-decoration-none fw-semibold">Inicia Sesión</a></p>
+                    <p class="text-muted small mb-0">¿Ya tienes una cuenta? <a asp-action="Login" class="text-primary text-decoration-none fw-bold">Inicia Sesión</a></p>
                 </div>
             </div>
         </div>
@@ -124,6 +130,98 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        // --- 1. MÁSCARA Y VALIDACIÓN EN TIEMPO REAL DEL TELÉFONO DOMINICANO ---
+        const phoneInput = document.getElementById('phoneInput');
+        const phoneError = document.getElementById('phoneRealtimeError');
+        const phoneServerValidation = document.getElementById('phoneServerValidation');
+
+        function formatAndValidatePhone(e) {
+            let value = phoneInput.value.replace(/\D/g, ''); // Solo dígitos
+
+            // Máscara automática xxx-xxx-xxxx
+            if (value.length > 10) value = value.substring(0, 10);
+
+            let formatted = '';
+            if (value.length > 6) {
+                formatted = `${value.substring(0, 3)}-${value.substring(3, 6)}-${value.substring(6)}`;
+            } else if (value.length > 3) {
+                formatted = `${value.substring(0, 3)}-${value.substring(3)}`;
+            } else {
+                formatted = value;
+            }
+
+            phoneInput.value = formatted;
+
+            // Validación inmediata
+            if (phoneServerValidation) phoneServerValidation.textContent = '';
+
+            if (value.length === 0) {
+                phoneError.classList.add('d-none');
+                phoneInput.classList.remove('is-invalid', 'is-valid');
+                return true;
+            }
+
+            const prefix = value.substring(0, 3);
+            const validPrefixes = ['809', '829', '849'];
+
+            if (value.length >= 3 && !validPrefixes.includes(prefix)) {
+                showPhoneError('El código de área debe ser 809, 829 u 849.');
+                return false;
+            } else if (value.length < 10) {
+                showPhoneError('El teléfono dominicano debe tener 10 dígitos (ej. 809-555-1234).');
+                return false;
+            } else {
+                phoneError.classList.add('d-none');
+                phoneInput.classList.remove('is-invalid');
+                phoneInput.classList.add('is-valid');
+                return true;
+            }
+        }
+
+        function showPhoneError(msg) {
+            phoneError.textContent = msg;
+            phoneError.classList.remove('d-none');
+            phoneInput.classList.add('is-invalid');
+            phoneInput.classList.remove('is-valid');
+        }
+
+        phoneInput.addEventListener('input', formatAndValidatePhone);
+        phoneInput.addEventListener('blur', formatAndValidatePhone);
+
+        // --- 2. VALIDACIÓN EN TIEMPO REAL DE CORREO ELECTRÓNICO CON DOMINIO ---
+        const emailInput = document.getElementById('emailInput');
+        const emailError = document.getElementById('emailRealtimeError');
+        const emailServerValidation = document.getElementById('emailServerValidation');
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        function validateEmail() {
+            const val = emailInput.value.trim();
+            if (emailServerValidation) emailServerValidation.textContent = '';
+
+            if (val.length === 0) {
+                emailError.classList.add('d-none');
+                emailInput.classList.remove('is-invalid', 'is-valid');
+                return true;
+            }
+
+            if (!emailRegex.test(val)) {
+                emailError.textContent = 'Debe ingresar un correo electrónico válido con dominio, ej. usuario@correo.com';
+                emailError.classList.remove('d-none');
+                emailInput.classList.add('is-invalid');
+                emailInput.classList.remove('is-valid');
+                return false;
+            } else {
+                emailError.classList.add('d-none');
+                emailInput.classList.remove('is-invalid');
+                emailInput.classList.add('is-valid');
+                return true;
+            }
+        }
+
+        emailInput.addEventListener('input', validateEmail);
+        emailInput.addEventListener('blur', validateEmail);
+
+        // --- 3. MEDIDOR DE FORTALEZA DE CONTRASEÑA ---
         const passwordInput = document.getElementById('passwordInput');
         const progressBar = document.getElementById('strengthProgressBar');
         const strengthBadge = document.getElementById('strengthBadge');
@@ -174,23 +272,30 @@
                 strengthBadge.className = 'badge bg-secondary';
                 strengthBadge.textContent = 'Sin evaluar';
             } else if (score <= 2) {
-                // Débil (<= 2 criterios)
                 progressBar.style.width = '33%';
                 progressBar.className = 'progress-bar bg-danger';
                 strengthBadge.className = 'badge bg-danger';
                 strengthBadge.textContent = 'Débil';
             } else if (score <= 4) {
-                // Media (3-4 criterios)
                 progressBar.style.width = '66%';
                 progressBar.className = 'progress-bar bg-warning text-dark';
                 strengthBadge.className = 'badge bg-warning text-dark';
                 strengthBadge.textContent = 'Media';
             } else {
-                // Fuerte (5 criterios)
                 progressBar.style.width = '100%';
                 progressBar.className = 'progress-bar bg-success';
                 strengthBadge.className = 'badge bg-success';
                 strengthBadge.textContent = 'Fuerte';
+            }
+        });
+
+        // --- 4. PREVENCIÓN DE ENVÍO SI HAY ERRORES ---
+        document.getElementById('registerForm').addEventListener('submit', function (e) {
+            const isPhoneValid = formatAndValidatePhone();
+            const isEmailValid = validateEmail();
+
+            if (!isPhoneValid || !isEmailValid) {
+                e.preventDefault();
             }
         });
     </script>

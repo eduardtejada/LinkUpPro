@@ -22,6 +22,7 @@ public class RegisterViewModel
 
     [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
     [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido.")]
+    [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Debe ingresar un correo electrónico válido con dominio, ej. usuario@correo.com")]
     [Display(Name = "Correo Electrónico")]
     public string Email { get; set; } = string.Empty;
 

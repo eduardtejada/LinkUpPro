@@ -11,6 +11,7 @@ public static class ServiceRegistration
         services.AddTransient<IPostService, PostService>();
         services.AddTransient<IFriendshipService, FriendshipService>();
         services.AddTransient<INotificationService, NotificationService>();
+        services.AddTransient<IBattleshipService, BattleshipService>();
 
         return services;
     }

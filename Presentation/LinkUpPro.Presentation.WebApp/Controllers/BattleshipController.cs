@@ -105,7 +105,7 @@ public class BattleshipController : Controller
 
         if (placements == null || placements.Count != 5)
         {
-            TempData["ErrorMessage"] = "Debes posicionar exactamente los 5 barcos reglamentarios.";
+            TempData["ErrorMessage"] = "Debes posicionar todos los 5 barcos de tu flota.";
             return RedirectToAction(nameof(Placement), new { id = input.GameId });
         }
 

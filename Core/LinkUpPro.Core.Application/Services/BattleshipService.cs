@@ -1,4 +1,3 @@
-using System.Text.Json;
 using LinkUpPro.Core.Application.Interfaces.Repositories;
 using LinkUpPro.Core.Application.Interfaces.Services;
 using LinkUpPro.Core.Application.ViewModels.Battleship;
@@ -30,7 +29,6 @@ public class BattleshipService : IBattleshipService
         var activeGames = await _battleshipRepository.GetActiveGamesByUserAsync(currentUserId);
         var finishedGames = await _battleshipRepository.GetFinishedGamesByUserAsync(currentUserId);
 
-        // 1. Revisar y procesar regla de abandono por inactividad (+48 horas) en partidas activas
         var updatedActive = new List<BattleshipGame>();
         var updatedFinished = finishedGames.ToList();
 
@@ -46,13 +44,9 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // 2. Mapear partidas activas
         var activeViewModels = updatedActive.Select(g => MapToGameItemViewModel(g, currentUserId)).ToList();
-
-        // 3. Mapear historial de partidas finalizadas
         var finishedViewModels = updatedFinished.Select(g => MapToGameItemViewModel(g, currentUserId)).ToList();
 
-        // 4. Obtener amigos activos con los que no se tenga una partida en curso actualmente
         var activeFriends = await _friendshipRepository.GetActiveFriendsAsync(currentUserId);
         var busyFriendIds = updatedActive
             .Select(g => g.Player1Id == currentUserId ? g.Player2Id : g.Player1Id)
@@ -108,7 +102,6 @@ public class BattleshipService : IBattleshipService
 
         var createdGame = await _battleshipRepository.AddAsync(game);
 
-        // Notificar al amigo sobre el reto
         await _notificationRepository.AddAsync(new Notification
         {
             RecipientId = opponentId,
@@ -192,14 +185,12 @@ public class BattleshipService : IBattleshipService
             return (false, "Ya has confirmado la colocación de tu flota anteriormente.");
         }
 
-        // Validación de los 5 barcos reglamentarios (2, 3, 3, 4, 5)
         var validationResult = ValidateFleetPlacement(placements);
         if (!validationResult.IsValid)
         {
             return (false, validationResult.ErrorMessage);
         }
 
-        // Generar entidades de barcos y sus coordenadas
         var shipsToAdd = new List<BattleshipShip>();
 
         foreach (var p in placements)
@@ -232,7 +223,6 @@ public class BattleshipService : IBattleshipService
 
         await _battleshipRepository.AddShipsAsync(shipsToAdd);
 
-        // Actualizar estado de preparación del jugador
         if (isPlayer1)
         {
             game.Player1Ready = true;
@@ -242,21 +232,19 @@ public class BattleshipService : IBattleshipService
             game.Player2Ready = true;
         }
 
-        // Si ambos completaron la colocación, iniciamos la partida (Fase 2)
         if (game.Player1Ready && game.Player2Ready)
         {
             game.Status = GameStatus.InProgress;
             game.StartedAt = DateTime.UtcNow;
-            game.CurrentTurnPlayerId = game.Player1Id; // Regla: Jugador 1 ataca primero
+            game.CurrentTurnPlayerId = game.Player1Id;
             game.LastMoveAt = DateTime.UtcNow;
 
-            // Notificar a ambos que el juego ha comenzado
             await _notificationRepository.AddAsync(new Notification
             {
                 RecipientId = game.Player1Id,
                 ActorId = game.Player2Id,
                 Type = NotificationType.BattleshipTurn,
-                Message = "¡Ambos jugadores listos! La partida de Battleship ha comenzado y es tu turno de atacar.",
+                Message = "Ambos listos. La partida de Battleship ha comenzado y es tu turno de atacar.",
                 TargetUrl = $"/Battleship/Play/{game.Id}",
                 CreatedAt = DateTime.UtcNow
             });
@@ -266,7 +254,7 @@ public class BattleshipService : IBattleshipService
                 RecipientId = game.Player2Id,
                 ActorId = game.Player1Id,
                 Type = NotificationType.BattleshipTurn,
-                Message = "¡Ambos listos! La partida ha comenzado. Esperando el ataque del creador.",
+                Message = "Ambos listos. La partida ha comenzado. Esperando el ataque del creador.",
                 TargetUrl = $"/Battleship/Play/{game.Id}",
                 CreatedAt = DateTime.UtcNow
             });
@@ -289,14 +277,12 @@ public class BattleshipService : IBattleshipService
             return (false, "No tienes acceso a esta partida.", null);
         }
 
-        // Verificar abandono por inactividad de 48 horas
         await CheckAndHandleTimeoutAsync(game);
 
         var isPlayer1 = game.Player1Id == currentUserId;
         var opponent = isPlayer1 ? game.Player2 : game.Player1;
         var opponentId = opponent.Id;
 
-        // Horas restantes para abandono
         double? hoursLeft = null;
         if (game.Status == GameStatus.InProgress && game.LastMoveAt.HasValue)
         {
@@ -304,7 +290,6 @@ public class BattleshipService : IBattleshipService
             hoursLeft = Math.Max(0, Math.Round(48 - elapsed.TotalHours, 1));
         }
 
-        // Construir Tablero Propio (12x12)
         var myBoard = BuildEmptyGrid();
         var myShips = game.Ships.Where(s => s.PlayerId == currentUserId).ToList();
 
@@ -323,7 +308,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Ataques fallidos del oponente sobre mi tablero (agua)
         var opponentAttacks = game.Attacks.Where(a => a.AttackerId == opponentId).ToList();
         foreach (var attack in opponentAttacks)
         {
@@ -335,7 +319,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Construir Tablero de Radar/Ataque (12x12): disparos que yo he realizado
         var radarBoard = BuildEmptyGrid();
         var myAttacks = game.Attacks.Where(a => a.AttackerId == currentUserId).ToList();
         foreach (var attack in myAttacks)
@@ -348,7 +331,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Estado detallado de las flotas
         var myShipDetails = myShips.Select(s => new BattleshipShipDetailViewModel
         {
             ShipType = s.ShipType,
@@ -413,13 +395,12 @@ public class BattleshipService : IBattleshipService
             return new BattleshipAttackResultDto { Success = false, Message = "No perteneces a esta partida." };
         }
 
-        // Revisar inactividad de 48h antes de permitir el ataque
         if (await CheckAndHandleTimeoutAsync(game))
         {
             return new BattleshipAttackResultDto
             {
                 Success = false,
-                Message = "La partida finalizó debido al límite de inactividad de 48 horas.",
+                Message = "La partida finalizó por límite de 48 horas sin actividad.",
                 IsGameOver = true,
                 WinnerName = game.WinnerPlayer?.FullName
             };
@@ -432,7 +413,7 @@ public class BattleshipService : IBattleshipService
 
         if (game.CurrentTurnPlayerId != currentUserId)
         {
-            return new BattleshipAttackResultDto { Success = false, Message = "No es tu turno de atacar. Espera el disparo de tu rival." };
+            return new BattleshipAttackResultDto { Success = false, Message = "No es tu turno de atacar." };
         }
 
         if (row < 0 || row >= BoardSize || col < 0 || col >= BoardSize)
@@ -440,7 +421,6 @@ public class BattleshipService : IBattleshipService
             return new BattleshipAttackResultDto { Success = false, Message = $"Las coordenadas deben estar entre 0 y {BoardSize - 1}." };
         }
 
-        // Regla: no permitir repetir celdas atacadas
         var alreadyAttacked = game.Attacks.Any(a => a.AttackerId == currentUserId && a.Row == row && a.Col == col);
         if (alreadyAttacked)
         {
@@ -450,7 +430,6 @@ public class BattleshipService : IBattleshipService
         var opponentId = game.Player1Id == currentUserId ? game.Player2Id : game.Player1Id;
         var opponentShips = game.Ships.Where(s => s.PlayerId == opponentId).ToList();
 
-        // Buscar si alguna coordenada de barco del rival coincide con el disparo
         BattleshipShipCoordinate? hitCoordinate = null;
         BattleshipShip? hitShip = null;
 
@@ -474,14 +453,12 @@ public class BattleshipService : IBattleshipService
         {
             hitCoordinate.IsHit = true;
 
-            // Evaluar si todo el barco fue destruido
             if (hitShip.Coordinates.All(c => c.IsHit))
             {
                 hitShip.IsSunk = true;
                 isSunk = true;
                 sunkShipName = GetShipDisplayName(hitShip.ShipType);
 
-                // Evaluar si todos los barcos del rival fueron destruidos (Victoria)
                 if (opponentShips.All(s => s.IsSunk || s.Coordinates.All(c => c.IsHit)))
                 {
                     isGameOver = true;
@@ -503,7 +480,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Alternancia estricta de turnos si el juego no terminó
         if (!isGameOver)
         {
             game.CurrentTurnPlayerId = opponentId;
@@ -515,14 +491,13 @@ public class BattleshipService : IBattleshipService
                 ActorId = currentUserId,
                 Type = NotificationType.BattleshipTurn,
                 Message = isHit
-                    ? (isSunk ? $"ha hundido tu {sunkShipName}! Es tu turno de disparar." : "ha impactado uno de tus barcos! Es tu turno de disparar.")
-                    : "ha disparado al agua. ¡Es tu turno de atacar!",
+                    ? (isSunk ? $"ha hundido tu {sunkShipName}. Es tu turno." : "ha impactado uno de tus barcos. Es tu turno.")
+                    : "ha disparado al agua. Es tu turno de atacar.",
                 TargetUrl = $"/Battleship/Play/{game.Id}",
                 CreatedAt = DateTime.UtcNow
             });
         }
 
-        // Registrar el ataque
         var attack = new BattleshipAttack
         {
             GameId = game.Id,
@@ -579,7 +554,6 @@ public class BattleshipService : IBattleshipService
 
         await _battleshipRepository.UpdateAsync(game);
 
-        // Notificar al ganador
         await _notificationRepository.AddAsync(new Notification
         {
             RecipientId = opponentId,
@@ -610,7 +584,6 @@ public class BattleshipService : IBattleshipService
         var opponent = isPlayer1 ? game.Player2 : game.Player1;
         var opponentId = opponent.Id;
 
-        // Tablero de colocación de barcos del usuario con los impactos recibidos
         var myFleetBoard = BuildEmptyGrid();
         var myShips = game.Ships.Where(s => s.PlayerId == currentUserId).ToList();
 
@@ -629,7 +602,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Tablero de ataques realizados por el usuario
         var myAttacksBoard = BuildEmptyGrid();
         foreach (var attack in game.Attacks.Where(a => a.AttackerId == currentUserId))
         {
@@ -641,7 +613,6 @@ public class BattleshipService : IBattleshipService
             }
         }
 
-        // Tablero de ataques realizados por el rival
         var opponentAttacksBoard = BuildEmptyGrid();
         foreach (var attack in game.Attacks.Where(a => a.AttackerId == opponentId))
         {
@@ -673,8 +644,6 @@ public class BattleshipService : IBattleshipService
 
         return (true, null, viewModel);
     }
-
-    #region Reglas Privadas y Validaciones de Battleship
 
     private async Task<bool> CheckAndHandleTimeoutAsync(BattleshipGame game)
     {
@@ -714,16 +683,15 @@ public class BattleshipService : IBattleshipService
     {
         if (placements == null || placements.Count != 5)
         {
-            return (false, "Debes posicionar exactamente los 5 barcos reglamentarios.");
+            return (false, "Debes posicionar exactamente 5 barcos.");
         }
 
-        // Comprobar que estén los tamaños requeridos: 5, 4, 3, 3, 2
         var requiredSizes = new List<int> { 5, 4, 3, 3, 2 };
         var submittedSizes = placements.Select(p => p.Size).OrderByDescending(s => s).ToList();
 
         if (!submittedSizes.SequenceEqual(requiredSizes))
         {
-            return (false, "La configuración de barcos debe contener exactamente: 1 de tamaño 5, 1 de tamaño 4, 2 de tamaño 3 y 1 de tamaño 2.");
+            return (false, "La flota debe contener: 1 de tamaño 5, 1 de tamaño 4, 2 de tamaño 3 y 1 de tamaño 2.");
         }
 
         var occupiedCoordinates = new HashSet<(int Row, int Col)>();
@@ -734,16 +702,14 @@ public class BattleshipService : IBattleshipService
 
             foreach (var (r, c) in coords)
             {
-                // Validación de límites del tablero 12x12
                 if (r < 0 || r >= BoardSize || c < 0 || c >= BoardSize)
                 {
-                    return (false, $"El barco {GetShipDisplayName(ship.ShipType)} se sale de los límites del tablero (12x12).");
+                    return (false, $"El barco {GetShipDisplayName(ship.ShipType)} se sale de los límites del tablero.");
                 }
 
-                // Validación de superposición
                 if (!occupiedCoordinates.Add((r, c)))
                 {
-                    return (false, $"Superposición detectada en la casilla ({r + 1}, {c + 1}). Los barcos no pueden cruzarse.");
+                    return (false, $"Superposición detectada en ({r + 1}, {c + 1}). Los barcos no pueden cruzarse.");
                 }
             }
         }
@@ -829,13 +795,11 @@ public class BattleshipService : IBattleshipService
 
     private static string GetShipDisplayName(ShipType type) => type switch
     {
-        ShipType.Carrier => "Portaaviones (5 casillas)",
-        ShipType.Battleship => "Acorazado (4 casillas)",
-        ShipType.Destroyer => "Destructor (3 casillas)",
-        ShipType.Submarine => "Submarino (3 casillas)",
-        ShipType.PatrolBoat => "Patrullero (2 casillas)",
+        ShipType.Carrier => "Portaaviones",
+        ShipType.Battleship => "Acorazado",
+        ShipType.Destroyer => "Destructor",
+        ShipType.Submarine => "Submarino",
+        ShipType.PatrolBoat => "Patrullero",
         _ => "Barco"
     };
-
-    #endregion
 }

@@ -152,12 +152,12 @@
                 </span>
             }
 
-            <!-- Botón Manual "Refrescar pantalla" (Requisito de la Rúbrica) -->
+            <!-- Refrescar pantalla -->
             <a asp-action="Play" asp-route-id="@Model.GameId" class="btn btn-outline-primary fw-semibold shadow-sm" title="Consultar si el rival atacó">
                 <i class="bi bi-arrow-clockwise me-1"></i> Refrescar Pantalla
             </a>
 
-            <!-- Botón Rendición con Confirmación (Requisito de la Rúbrica) -->
+            <!-- Rendición -->
             <button type="button" class="btn btn-outline-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#surrenderModal">
                 <i class="bi bi-flag-fill me-1"></i> Rendirse
             </button>
@@ -165,15 +165,15 @@
     </div>
 </div>
 
-<!-- Tableros de Combate (Radar y Flota) -->
+<!-- Tableros de Combate -->
 <div class="row g-4 mb-4">
-    <!-- Tablero Izquierdo: Radar de Ataque (Disparos contra el rival) -->
+    <!-- Radar de Ataque -->
     <div class="col-xl-6 text-center">
         <div class="card shadow-sm border-0 rounded-3 p-3 h-100">
             <div class="card-header bg-white border-0 pb-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-danger">
-                        <i class="bi bi-crosshair2 me-1"></i> 1. Radar de Ataque
+                        <i class="bi bi-crosshair2 me-1"></i> Radar de Ataque
                     </h5>
                     <span class="badge bg-danger text-white">
                         Hundidos: @Model.OpponentShipsSunkCount / @Model.TotalShips
@@ -227,13 +227,13 @@
         </div>
     </div>
 
-    <!-- Tablero Derecho: Mi Flota (Disparos recibidos) -->
+    <!-- Tablero Derecho: Mi Flota -->
     <div class="col-xl-6 text-center">
         <div class="card shadow-sm border-0 rounded-3 p-3 h-100">
             <div class="card-header bg-white border-0 pb-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-primary">
-                        <i class="bi bi-shield-shaded me-1"></i> 2. Tu Flota Defensiva
+                        <i class="bi bi-shield-shaded me-1"></i> Tu Flota
                     </h5>
                     <span class="badge bg-secondary text-white">
                         Hundidos: @Model.MyShipsSunkCount / @Model.TotalShips
@@ -352,7 +352,7 @@
     <input type="hidden" name="Col" id="attackColInput" />
 </form>
 
-<!-- Modal de Confirmación para Rendición (Requisito de la Rúbrica) -->
+<!-- Modal de Confirmación para Rendición -->
 <div class="modal fade" id="surrenderModal" tabindex="-1" aria-labelledby="surrenderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

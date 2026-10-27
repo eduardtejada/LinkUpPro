@@ -94,20 +94,17 @@ public class FriendshipService : IFriendshipService
             return (false, $"El usuario '{targetUserName}' no existe.");
         }
 
-        // Rúbrica: Prevención estricta de auto-solicitudes
         if (targetUser.Id == senderId)
         {
             return (false, "No puedes enviarte una solicitud de amistad a ti mismo.");
         }
 
-        // Rúbrica: Verificar si ya existe una amistad activa
         var existingFriendship = await _friendshipRepository.GetFriendshipBetweenUsersAsync(senderId, targetUser.Id);
         if (existingFriendship != null && existingFriendship.Status == FriendshipStatus.Active)
         {
             return (false, $"Ya eres amigo de {targetUser.FullName} (@{targetUser.UserName}).");
         }
 
-        // Rúbrica: Prevención de solicitudes duplicadas en ambas direcciones
         var pendingRequest = await _friendshipRepository.GetPendingRequestBetweenUsersAsync(senderId, targetUser.Id);
         if (pendingRequest != null)
         {
@@ -157,19 +154,16 @@ public class FriendshipService : IFriendshipService
         request.RespondedAt = DateTime.UtcNow;
         await _friendshipRepository.UpdateRequestAsync(request);
 
-        // Rúbrica: "Una única relación para cada pareja de usuarios. Al aceptar solicitud previa eliminada, se reactiva la existente."
         var existingFriendship = await _friendshipRepository.GetFriendshipBetweenUsersAsync(request.SenderId, request.ReceiverId);
 
         if (existingFriendship != null)
         {
-            // Reactivación
             existingFriendship.Status = FriendshipStatus.Active;
             existingFriendship.UpdatedAt = DateTime.UtcNow;
             await _friendshipRepository.UpdateAsync(existingFriendship);
         }
         else
         {
-            // Creación asegurando orden canónico
             var userA = string.Compare(request.SenderId, request.ReceiverId, StringComparison.Ordinal) < 0 
                 ? request.SenderId 
                 : request.ReceiverId;
@@ -240,7 +234,6 @@ public class FriendshipService : IFriendshipService
             return (false, "Solicitud no encontrada.");
         }
 
-        // Rúbrica: Ocultar solicitudes del historial sin eliminarlas físicamente
         request.IsHidden = true;
         await _friendshipRepository.UpdateRequestAsync(request);
 
@@ -255,7 +248,6 @@ public class FriendshipService : IFriendshipService
             return (false, "No se encontró una amistad activa con este usuario.");
         }
 
-        // Rúbrica: Eliminación lógica y bidireccional. Conserva interacciones históricas y partidas activas de Battleship.
         friendship.Status = FriendshipStatus.Deleted;
         friendship.UpdatedAt = DateTime.UtcNow;
         await _friendshipRepository.UpdateAsync(friendship);

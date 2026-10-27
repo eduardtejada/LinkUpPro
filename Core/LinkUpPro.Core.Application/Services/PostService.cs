@@ -308,7 +308,6 @@ public class PostService : IPostService
             return false;
         }
 
-        // Rúbrica: Borrado lógico si tiene respuestas
         if (comment.Replies.Any())
         {
             comment.Content = "Este comentario fue eliminado";
@@ -338,12 +337,10 @@ public class PostService : IPostService
         {
             if (existingReaction.Type == type)
             {
-                // Mismo botón presionado -> Eliminar reacción sin notificar (según rúbrica)
                 await _reactionRepository.DeleteAsync(existingReaction);
                 return true;
             }
 
-            // Cambiar de Me gusta a No me gusta (o viceversa)
             existingReaction.Type = type;
             await _reactionRepository.UpdateAsync(existingReaction);
             return true;

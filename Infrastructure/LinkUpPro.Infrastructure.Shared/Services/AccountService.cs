@@ -43,7 +43,6 @@ public class AccountService : IAccountService
     {
         var response = new AccountResponseDto();
 
-        // 1. Validar unicidad insensible a mayúsculas/minúsculas de UserName y Email
         var existingUserByName = await _userManager.FindByNameAsync(vm.UserName);
         if (existingUserByName != null)
         {
@@ -60,7 +59,6 @@ public class AccountService : IAccountService
             return response;
         }
 
-        // 2. Procesar foto de perfil si se proporcionó
         string? profilePictureUrl = null;
         if (profilePictureStream != null && !string.IsNullOrWhiteSpace(profilePictureFileName))
         {
@@ -74,7 +72,6 @@ public class AccountService : IAccountService
             profilePictureUrl = await _fileStorageService.SaveFileAsync(profilePictureStream, profilePictureFileName, "profiles");
         }
 
-        // 3. Crear entidad de usuario (cuenta inicia INACTIVA)
         var user = new ApplicationUser
         {
             UserName = vm.UserName.Trim(),
@@ -95,7 +92,6 @@ public class AccountService : IAccountService
             response.Errors = createResult.Errors.Select(e => e.Description).ToList();
             response.Error = string.Join(" ", response.Errors);
 
-            // Si falló la creación, eliminar la foto guardada para no dejar basura
             if (profilePictureUrl != null)
             {
                 _fileStorageService.DeleteFile(profilePictureUrl);
@@ -104,11 +100,9 @@ public class AccountService : IAccountService
             return response;
         }
 
-        // 4. Generar token de activación (válido por 24 horas y de un solo uso)
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var activationUrl = $"{originUrl}/Account/ConfirmEmail?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
 
-        // 5. Enviar correo de activación
         await _emailService.SendAccountActivationEmailAsync(user.Email, user.UserName, activationUrl);
 
         response.SuccessMessage = "Registro completado con éxito. Por favor revisa tu correo electrónico para activar tu cuenta antes de iniciar sesión.";
@@ -316,11 +310,9 @@ public class AccountService : IAccountService
             return response;
         }
 
-        // Rúbrica: Restablecer contraseña desbloquea la cuenta e invalida sesiones anteriores,
-        // pero NO activa una cuenta inactiva.
         await _userManager.SetLockoutEndDateAsync(user, null);
         await _userManager.ResetAccessFailedCountAsync(user);
-        await _userManager.UpdateSecurityStampAsync(user); // Invalida sesiones previas
+        await _userManager.UpdateSecurityStampAsync(user);
 
         response.SuccessMessage = "Tu contraseña ha sido restablecida con éxito. Ya puedes iniciar sesión con tu nueva contraseña.";
         return response;

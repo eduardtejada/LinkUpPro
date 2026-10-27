@@ -25,10 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        // 1. Configurar las tablas de Identity por defecto
         base.OnModelCreating(builder);
-
-        // 2. Aplicar todas las configuraciones Fluent API de este ensamblado
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 }

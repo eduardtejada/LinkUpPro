@@ -31,9 +31,6 @@ public class PostViewModel
 
     public List<CommentViewModel> Comments { get; set; } = new();
 
-    /// <summary>
-    /// Genera la URL embed de YouTube a partir de formatos habituales (watch, youtu.be, embed, shorts)
-    /// </summary>
     public string? YouTubeEmbedUrl
     {
         get

@@ -22,7 +22,7 @@ public class ReactionConfiguration : IEntityTypeConfiguration<Reaction>
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Regla: un usuario solo puede tener a lo sumo una reacción (Like o Dislike) por post
+        // Un usuario solo puede tener una reaccion activa por publicacion
         builder.HasIndex(r => new { r.PostId, r.UserId })
             .IsUnique();
     }

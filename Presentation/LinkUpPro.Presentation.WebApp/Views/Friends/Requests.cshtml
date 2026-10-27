@@ -229,7 +229,6 @@
                                             break;
                                     }
 
-                                    <!-- Ocultar del Historial (Sin eliminar físicamente según rúbrica) -->
                                     <form asp-action="Hide" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@req.Id" />

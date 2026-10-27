@@ -22,7 +22,7 @@ public class BattleshipAttackConfiguration : IEntityTypeConfiguration<Battleship
             .HasForeignKey(a => a.AttackerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Regla: no permite que el mismo atacante dispare dos veces a la misma casilla en la misma partida
+        // Prevenir disparos duplicados a la misma casilla por el mismo atacante
         builder.HasIndex(a => new { a.GameId, a.AttackerId, a.Row, a.Col })
             .IsUnique();
     }

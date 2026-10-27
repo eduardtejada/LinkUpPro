@@ -20,34 +20,27 @@ public class FileStorageService : IFileStorageService
 
     public async Task<string> SaveFileAsync(Stream fileStream, string originalFileName, string destinationFolder)
     {
-        // 1. Obtener la ruta base de wwwroot
         var webRootPath = _webHostEnvironment.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRootPath))
         {
             webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         }
 
-        // 2. Crear el directorio de destino si no existe
         var uploadsPath = Path.Combine(webRootPath, "uploads", destinationFolder);
         if (!Directory.Exists(uploadsPath))
         {
             Directory.CreateDirectory(uploadsPath);
         }
 
-        // 3. Generar un nombre de archivo único para evitar colisiones
         var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
         var uniqueFileName = $"{Guid.NewGuid()}{extension}";
         var fullFilePath = Path.Combine(uploadsPath, uniqueFileName);
 
-        // 4. Escribir el stream al disco local
         using (var outputStream = new FileStream(fullFilePath, FileMode.Create))
         {
             await fileStream.CopyToAsync(outputStream);
         }
 
-        _logger.LogInformation("Archivo guardado exitosamente en {Path}", fullFilePath);
-
-        // 5. Retornar la ruta relativa web (ej. /uploads/profiles/guid.png)
         return $"/uploads/{destinationFolder}/{uniqueFileName}".Replace("\\", "/");
     }
 

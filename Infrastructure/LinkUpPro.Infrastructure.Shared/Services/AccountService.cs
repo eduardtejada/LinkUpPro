@@ -218,7 +218,7 @@ public class AccountService : IAccountService
             return response;
         }
 
-        // Validar contraseña y registrar intento fallido si no coincide
+        // Validar contraseña e intento de inicio
         var passwordCheck = await _signInManager.CheckPasswordSignInAsync(user, vm.Password, lockoutOnFailure: true);
 
         if (passwordCheck.IsLockedOut)
@@ -229,19 +229,24 @@ public class AccountService : IAccountService
             return response;
         }
 
+        // Si el resultado es IsNotAllowed o si la contraseña es válida pero !user.IsActive || !user.EmailConfirmed
+        if (passwordCheck.IsNotAllowed || !user.IsActive || !user.EmailConfirmed)
+        {
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, vm.Password);
+            if (isPasswordValid || passwordCheck.IsNotAllowed)
+            {
+                response.HasError = true;
+                response.IsAccountInactive = true;
+                response.InactiveEmail = user.Email ?? string.Empty;
+                response.Error = "Su cuenta se encuentra inactiva. Debe activarla mediante el enlace enviado a su correo electrónico.";
+                return response;
+            }
+        }
+
         if (!passwordCheck.Succeeded)
         {
             response.HasError = true;
             response.Error = "Usuario, correo o contraseña incorrectos.";
-            return response;
-        }
-
-        // Verificar si la cuenta está inactiva
-        if (!user.IsActive || !user.EmailConfirmed)
-        {
-            response.HasError = true;
-            response.IsAccountInactive = true;
-            response.Error = "Tu cuenta está inactiva. Debes activarla mediante el enlace enviado a tu correo antes de iniciar sesión.";
             return response;
         }
 

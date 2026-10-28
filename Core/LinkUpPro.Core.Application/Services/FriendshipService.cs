@@ -88,10 +88,11 @@ public class FriendshipService : IFriendshipService
             return (false, "Debe ingresar el nombre de usuario.");
         }
 
-        var targetUser = await _friendshipRepository.GetUserByUserNameAsync(targetUserName.Trim());
-        if (targetUser == null)
+        var cleanUserName = targetUserName.Trim().TrimStart('@');
+        var targetUser = await _friendshipRepository.GetUserByUserNameAsync(cleanUserName);
+        if (targetUser == null || !targetUser.IsActive)
         {
-            return (false, $"El usuario '{targetUserName}' no existe.");
+            return (false, $"El usuario '{targetUserName}' no existe o su cuenta no está activa.");
         }
 
         if (targetUser.Id == senderId)

@@ -42,17 +42,24 @@ public class FriendsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendRequest(SendFriendRequestViewModel vm)
+    public async Task<IActionResult> SendRequest(
+        SendFriendRequestViewModel vm,
+        [FromForm] string? userName,
+        [FromForm(Name = "SendModel.UserName")] string? sendModelUserName)
     {
         var currentUserId = GetCurrentUserId();
 
-        if (!ModelState.IsValid)
+        var targetUserName = !string.IsNullOrWhiteSpace(userName)
+            ? userName
+            : (!string.IsNullOrWhiteSpace(vm.UserName) ? vm.UserName : sendModelUserName);
+
+        if (string.IsNullOrWhiteSpace(targetUserName))
         {
             TempData["ErrorMessage"] = "Debe especificar un nombre de usuario válido.";
             return RedirectToAction(nameof(Requests));
         }
 
-        var result = await _friendshipService.SendRequestAsync(currentUserId, vm.UserName);
+        var result = await _friendshipService.SendRequestAsync(currentUserId, targetUserName.Trim());
 
         if (!result.Success)
         {
@@ -60,7 +67,7 @@ public class FriendsController : Controller
         }
         else
         {
-            TempData["SuccessMessage"] = $"Solicitud de amistad enviada a @{vm.UserName} con éxito.";
+            TempData["SuccessMessage"] = $"Solicitud de amistad enviada a @{targetUserName.Trim().TrimStart('@')} con éxito.";
         }
 
         return RedirectToAction(nameof(Requests));

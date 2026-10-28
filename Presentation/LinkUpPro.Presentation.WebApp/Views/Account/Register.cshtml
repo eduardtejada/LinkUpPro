@@ -79,7 +79,10 @@
                             <label asp-for="Password" class="form-label fw-semibold"></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
-                                <input asp-for="Password" class="form-control" id="passwordInput" placeholder="Nueva contraseña" />
+                                <input asp-for="Password" class="form-control" id="passwordInput" type="password" placeholder="Nueva contraseña" />
+                                <button class="btn btn-outline-secondary" type="button" data-toggle-password="passwordInput" title="Mostrar/ocultar contraseña" tabindex="-1">
+                                    <i class="bi bi-eye"></i>
+                                </button>
                             </div>
                             <span asp-validation-for="Password" class="text-danger small"></span>
 
@@ -106,7 +109,10 @@
                             <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-lock-fill text-muted"></i></span>
-                                <input asp-for="ConfirmPassword" class="form-control" placeholder="Repite tu contraseña" />
+                                <input asp-for="ConfirmPassword" class="form-control" id="confirmRegisterPasswordInput" type="password" placeholder="Repite tu contraseña" />
+                                <button class="btn btn-outline-secondary" type="button" data-toggle-password="confirmRegisterPasswordInput" title="Mostrar/ocultar contraseña" tabindex="-1">
+                                    <i class="bi bi-eye"></i>
+                                </button>
                             </div>
                             <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                         </div>
@@ -289,7 +295,25 @@
             }
         });
 
-        // --- 4. PREVENCIÓN DE ENVÍO SI HAY ERRORES ---
+        // --- 4. MOSTRAR / OCULTAR CONTRASEÑA ---
+        document.querySelectorAll('[data-toggle-password]').forEach(button => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-toggle-password');
+                const targetInput = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (targetInput.type === 'password') {
+                    targetInput.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    targetInput.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+        });
+
+        // --- 5. PREVENCIÓN DE ENVÍO SI HAY ERRORES ---
         document.getElementById('registerForm').addEventListener('submit', function (e) {
             const isPhoneValid = formatAndValidatePhone();
             const isEmailValid = validateEmail();

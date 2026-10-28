@@ -16,7 +16,10 @@ public static class ServiceRegistration
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString,
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                b => {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                }));
 
         // Repositorio genérico y específicos
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

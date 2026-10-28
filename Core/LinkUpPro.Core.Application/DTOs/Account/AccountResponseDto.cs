@@ -7,5 +7,6 @@ public class AccountResponseDto
     public List<string> Errors { get; set; } = new();
     public bool IsLockedOut { get; set; }
     public bool IsAccountInactive { get; set; }
+    public string? InactiveEmail { get; set; }
     public string? SuccessMessage { get; set; }
 }

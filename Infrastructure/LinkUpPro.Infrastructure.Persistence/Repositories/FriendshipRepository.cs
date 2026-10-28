@@ -136,7 +136,7 @@ public class FriendshipRepository : GenericRepository<Friendship>, IFriendshipRe
 
     public async Task<ApplicationUser?> GetUserByUserNameAsync(string userName)
     {
-        var normalized = userName.ToUpperInvariant();
+        var normalized = userName.Trim().TrimStart('@').ToUpperInvariant();
         return await _dbContext.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalized);
     }
 }

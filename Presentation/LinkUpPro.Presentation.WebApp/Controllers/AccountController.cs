@@ -144,7 +144,9 @@ public class AccountController : Controller
             ViewBag.ErrorMessage = result.Error;
             ViewBag.IsLockedOut = result.IsLockedOut;
             ViewBag.IsAccountInactive = result.IsAccountInactive;
-            ViewBag.InactiveEmail = vm.UserNameOrEmail;
+            ViewBag.InactiveEmail = !string.IsNullOrWhiteSpace(result.InactiveEmail) 
+                ? result.InactiveEmail 
+                : vm.UserNameOrEmail;
 
             return View(vm);
         }

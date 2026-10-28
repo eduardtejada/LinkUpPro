@@ -3,6 +3,7 @@ using LinkUpPro.Core.Domain.Entities;
 using LinkUpPro.Infrastructure.Persistence;
 using LinkUpPro.Infrastructure.Persistence.Context;
 using LinkUpPro.Infrastructure.Shared;
+using LinkUpPro.Infrastructure.Shared.Identity;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,7 +41,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.SignIn.RequireConfirmedEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+.AddDefaultTokenProviders()
+.AddErrorDescriber<SpanishIdentityErrorDescriber>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
